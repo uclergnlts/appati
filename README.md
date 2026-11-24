@@ -13,7 +13,7 @@ Bütün uygulamalarının rakamları, Mac'inin kenarında tek panelde. Menü çu
 | Kaynak | Ne gelir | Gereken |
 |---|---|---|
 | Supabase | Kayıtlı kullanıcı, günlük yeni kayıt, aktif kullanıcı, kendi tablo sayaçların | Proje adresi + gizli anahtar |
-| Umami | Site ziyaretçisi, nereden geldikleri, en çok açılan sayfalar, ülkeler | Website ID + API anahtarı |
+| Google Analytics (GA4) | Site ziyaretçisi, nereden geldikleri, en çok açılan sayfalar, ülkeler | Property ID + servis hesabı JSON'u |
 | RevenueCat | Abone, deneme, MRR, 28 günlük gelir | Project ID + gizli v2 anahtarı |
 | App Store Connect | iOS yorumları, günlük ilk indirme | Apple ID, Issuer ID, Key ID, .p8 (+ indirme için Vendor Number) |
 | Google Play | Android yorumları (son bir hafta) | Paket adı + servis hesabı JSON'u |
@@ -45,7 +45,7 @@ npm run dist       # dist/ altına .dmg ve .zip üret (Mac'te)
 
 Fare ekranın üst ortasına (MacBook çentiğine) gelince çentikten aşağı küçük bir özet açılır: bugünün rakamları ve çalan şarkı ya da video. Rakamlara tıklayınca tam panel sağda açılır; fare uzaklaşınca özet kapanır. Çentiksiz ekranda aynı yerde çalışır. **Ayarlar > Çentik** altından kapatılır.
 
-Bir şey çalarken ada kapalıyken de çentiğin iki yanında küçük bir gösterge kalır: solda albüm kapağı, sağda hareketli ses çubukları. Duraklatınca kaybolur. (Çubuklar süslemedir; gerçek ses düzeyini ölçmez.)
+Bir şey çalarken ada kapalıyken de çentiğin devamı gibi duran küçük bir şerit kalır (genişliği, yüksekliği ve saydamlığı **Ayarlar > Çentik** altından ayarlanır; yüksekliği kendi çentiğinle aynı olana kadar ayarla): solda albüm kapağı, sağda hareketli ses çubukları. Duraklatınca kaybolur. (Çubuklar süslemedir; gerçek ses düzeyini ölçmez.)
 
 - **Spotify:** çalan şarkı, kapak, önceki / oynat-duraklat / sonraki. Spotify masaüstü uygulaması açık olmalı.
 - **YouTube:** Chrome, Safari, Brave, Edge ya da Arc'ta açık videonun adı ve oynat/duraklat. Oynat/duraklat için tarayıcıda "Apple Events'ten JavaScript'e İzin Ver" açık olmalı (Chrome: Görünüm > Geliştirici; Safari: Geliştir menüsü).
@@ -69,12 +69,12 @@ Supabase kaynağındaki "Dönüşüm hunisi" alanına adımları sayaçlarla ayn
 
 ## Uygulama ekleme
 
-Panelde dişli simgesi > **Uygulama ekle**. `ucler.` için hazır şablon vardır: proje adresi, Umami kimliği, paket adı ve sayaçlar dolu gelir; yalnızca anahtarları yapıştırırsın.
+Panelde dişli simgesi > **Uygulama ekle**. `ucler.` için hazır şablon vardır: proje adresi, paket adı, huni ve sayaçlar dolu gelir; yalnızca anahtarları yapıştırırsın.
 
 Anahtarları nereden alırsın:
 
 - **Supabase:** Project Settings > API keys > gizli anahtar (`service_role` ya da `sb_secret_…`). Appati yalnızca okur.
-- **Umami:** cloud.umami.is > Settings > API keys.
+- **Google Analytics:** Sitede GA4 kurulu olmalı. Analytics > Yönetici > Mülk ayrıntıları'ndaki sayısal Property ID'yi gir. Servis hesabının e-postasını Yönetici > Mülk erişim yönetimi'nde Görüntüleyici olarak ekle ve Cloud projesinde **Google Analytics Data API**'yi aç. Servis hesabı alanını boş bırakırsan Google Play'e girdiğin JSON kullanılır.
 - **RevenueCat:** Project settings > API keys > New secret key (v2, *Charts metrics: read*). Project ID aynı sayfadadır.
 - **App Store Connect:** Users and Access > Integrations > App Store Connect API. İndirme sayıları için anahtarın *Sales* yetkisi ve Vendor Number gerekir.
 - **Google Play:** Google Cloud'da servis hesabı oluştur, JSON anahtarını indir, hesabı Play Console > Kullanıcılar ve izinler altında ekle.
@@ -99,8 +99,9 @@ Günün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}
 - Günlük aktif kullanıcı geçmişi hiçbir kaynakta hazır durmaz; Appati her gün gördüğü değeri saklar, grafik zamanla dolar.
 - App Store indirme raporları bir-iki gün gecikmeli gelir.
 - Google Play kurulum sayıları API'de yoktur; yalnızca yorumlar okunur.
+- Google Analytics bugünün verisini birkaç saat gecikmeyle işler; "şu an sitede" sayısı gerçek zamanlıdır.
 - İnternet yokken (uyku sonrası, Wi-Fi kopuk) panel son okunan rakamları göstermeye devam eder ve bunu yazar.
-- Kaynak okuyucular sahte yanıtlarla sınanmıştır (`npm test`); Umami, RevenueCat, App Store ve Google Play gerçek anahtarla henüz denenmedi.
+- Kaynak okuyucular sahte yanıtlarla sınanmıştır (`npm test`); Google Analytics, RevenueCat ve App Store gerçek anahtarla henüz denenmedi.
 
 ## Geliştirme
 

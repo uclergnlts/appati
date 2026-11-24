@@ -13,11 +13,10 @@ const KAYNAKLAR = [
     ],
   },
   {
-    tur: "umami", ad: "Umami", ne: "Site ziyaretçisi, nereden geldikleri, sayfalar, ülkeler",
+    tur: "ganalytics", ad: "Google Analytics", ne: "Site ziyaretçisi, nereden geldikleri, sayfalar, ülkeler",
     alanlar: [
-      { ad: "websiteId", etiket: "Website ID", ornek: "62a66252-…" },
-      { ad: "apiKey", etiket: "API anahtarı", gizli: true, ipucu: "cloud.umami.is > Settings > API keys" },
-      { ad: "host", etiket: "API adresi (isteğe bağlı)", ornek: "https://api.umami.is/v1" },
+      { ad: "propertyId", etiket: "Property ID (sayısal mülk kimliği)", ornek: "412345678", ipucu: "Analytics > Yönetici > Mülk ayrıntıları. G- ile başlayan ölçüm kimliği değil." },
+      { ad: "serviceAccount", etiket: "Servis hesabı JSON'u", gizli: true, cokSatir: true, yedek: "googleplay", ipucu: "Boş bırakırsan Google Play'e girdiğin servis hesabı kullanılır. Hesabın e-postası Analytics'te mülke Görüntüleyici olarak eklenmeli; Cloud projesinde Google Analytics Data API açık olmalı." },
     ],
   },
   {
@@ -59,7 +58,7 @@ const SABLONLAR = [
         huni: "Hesabı eşitlenen | ilerleme |\nPuan kazanan | ilerleme | puan=gt.0\nBir aşama bitiren | ilerleme | veri->asama=neq.%7B%7D\nPlus abonesi | abonelik | ortam=eq.PRODUCTION&or=(bitis.is.null,bitis.gt.{simdi})",
         sayaclar: "Plus abonesi | abonelik | ortam=eq.PRODUCTION&or=(bitis.is.null,bitis.gt.{simdi})\nGünün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}\nLigde olan | ilerleme | ligde=is.true",
       },
-      umami: { websiteId: "62a66252-cdbb-4b30-a6a8-400146fa2e6a" },
+      ganalytics: {},
       revenuecat: {},
       appstore: {},
       googleplay: { packageName: "app.ucler" },

@@ -43,7 +43,7 @@ function demoUygulamalar(simdi) {
     const z7 = topla(ziyaret, 23, 30);
     const u = {
       id: t.id, ad: t.ad, renk: t.renk, demo: true,
-      kaynaklar: ["Supabase", "Umami", "RevenueCat", "App Store Connect", "Google Play"].map((ad) => ({ tur: ad, ad, tamam: true, hata: null, uyarilar: [] })),
+      kaynaklar: ["Supabase", "Google Analytics", "RevenueCat", "App Store Connect", "Google Play"].map((ad) => ({ tur: ad, ad, tamam: true, hata: null, uyarilar: [] })),
       kpi: {
         aktifBugun: aktif[29].v, aktif7g: Math.round(aktif[29].v * 3.1), kayitli: Math.round(4200 * o),
         yeniKayitBugun: kayit[29].v, yeniKayit7g: topla(kayit, 23, 30), yeniKayitOnceki7g: topla(kayit, 16, 23),

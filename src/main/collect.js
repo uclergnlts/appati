@@ -4,7 +4,7 @@ const { gunAnahtari, sonGunler, seri } = require("./util");
 
 const OKUYUCU = {
   supabase: require("./sources/supabase"),
-  umami: require("./sources/umami"),
+  ganalytics: require("./sources/ganalytics"),
   revenuecat: require("./sources/revenuecat"),
   appstore: require("./sources/appstore"),
   googleplay: require("./sources/googleplay"),
@@ -63,7 +63,12 @@ async function uygulamayiTopla(uyg, gizliler, ctx) {
   };
   const isler = KAYNAKLAR.map(async (tanim) => {
     const ayar = { ...((uyg.kaynaklar || {})[tanim.tur] || {}) };
-    const gizli = (gizliler || {})[tanim.tur] || {};
+    let gizli = (gizliler || {})[tanim.tur] || {};
+    // Bir kaynağın gizli alanı boşsa ve "yedek" tanımlıysa başka kaynağınki kullanılır
+    // (Google Analytics, Google Play'e girilen servis hesabını paylaşabilir).
+    for (const a of tanim.alanlar) {
+      if (a.gizli && a.yedek && !gizli[a.ad] && (gizliler || {})[a.yedek] && gizliler[a.yedek][a.ad]) gizli = { ...gizli, [a.ad]: gizliler[a.yedek][a.ad] };
+    }
     if (!kaynakDolu(tanim.tur, ayar, gizli)) return null;
     if (tanim.tur === "supabase") { ayar.sayaclar = sayaclariOku(ayar.sayaclar); ayar.huni = sayaclariOku(ayar.huni); }
     try {

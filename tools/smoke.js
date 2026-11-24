@@ -79,7 +79,7 @@ const assert = require("node:assert");
 
   await fare(5, 400);
   // Örnek şarkı "çalıyor": kapalıyken küçük ada görünür.
-  await bekle(async () => { const s = await sinir(); return s.gorunur && s.width === 310; }, "küçük ada");
+  await bekle(async () => { const s = await sinir(); return s.gorunur && s.width === 316 && s.height === 32; }, "küçük ada");
   await c.waitForSelector("#kucuk .dalga", { timeout: 3000 }); // veri sayfa yüklenir yüklenmez gelmeli
   assert.equal(await c.locator("#kucuk .dalga i").count(), 5, "ses çubukları");
   assert.equal(await c.locator("#ada.acik").count(), 0);
@@ -93,7 +93,7 @@ const assert = require("node:assert");
   await c.screenshot({ path: path.join(cikti, "duman-centik.png") });
   // Fare uzaklaşınca kapanır ve küçük adaya döner.
   await fare(5, 400);
-  await bekle(async () => (await sinir()).width === 310, "küçük adaya dönüş");
+  await bekle(async () => (await sinir()).width === 316, "küçük adaya dönüş");
   assert.equal(await c.locator("#ada.acik").count(), 0);
   // Rakamlara tıklamak tam paneli açar.
   await fare(orta, 2);

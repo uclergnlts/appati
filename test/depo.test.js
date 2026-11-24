@@ -29,7 +29,7 @@ test("kaydet, gizle, güncelle, sil", () => {
   assert.ok(!JSON.stringify(guvenli).includes("cok-gizli"));
   assert.equal(guvenli.uygulamalar[0].ad, "ucler.");
   assert.equal(guvenli.uygulamalar[0].gizliVar.supabase.key, true);
-  assert.equal(guvenli.uygulamalar[0].gizliVar.umami.apiKey, false);
+  assert.equal(guvenli.uygulamalar[0].gizliVar.revenuecat.apiKey, false);
   assert.equal(d.gizliler()[id].supabase.key, "cok-gizli");
 
   // Boş gizli alan eskisini korur; yeniden açılan depo aynı veriyi görür.
@@ -46,13 +46,13 @@ test("kaydet, gizle, güncelle, sil", () => {
 
 test("Anahtar Zinciri izni reddedilince kayıtlı anahtarlar silinmez; arayüz açılışı çözme yapmaz", () => {
   const klasor = fs.mkdtempSync(path.join(os.tmpdir(), "appati-"));
-  const id = depo(klasor, kasa).uygulamaKaydet({ ad: "ucler.", kaynaklar: { umami: { websiteId: "w" } }, gizli: { umami: { apiKey: "ilk-anahtar" } } });
+  const id = depo(klasor, kasa).uygulamaKaydet({ ad: "ucler.", kaynaklar: { revenuecat: { projectId: "w" } }, gizli: { revenuecat: { apiKey: "ilk-anahtar" } } });
   const ilkDosya = fs.readFileSync(path.join(klasor, "gizli.bin"));
 
   // Yeni sürüm açıldı, kullanıcı izni reddetti: çözme hata verir.
   let cozme = 0, reddet = true;
   const d = depo(klasor, { ...kasa, decryptString: (b) => { cozme++; if (reddet) throw new Error("reddedildi"); return kasa.decryptString(b); } });
-  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.umami.apiKey, true); // dizinden; çözme yok
+  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.revenuecat.apiKey, true); // dizinden; çözme yok
   assert.equal(cozme, 0);
   assert.equal(d.cozmeBekliyor(), true);
   assert.deepEqual(d.gizliler(), {});
@@ -65,43 +65,45 @@ test("Anahtar Zinciri izni reddedilince kayıtlı anahtarlar silinmez; arayüz a
   assert.equal(d.ayar().uygulamalar.length, 1);
   assert.deepEqual(fs.readFileSync(path.join(klasor, "gizli.bin")), ilkDosya);
   // Gizli alan içermeyen kayıt (ad değişikliği) kilitliyken de yapılabilir.
-  d.uygulamaKaydet({ id, ad: "ucler 2", kaynaklar: { umami: { websiteId: "w" } }, gizli: { umami: { apiKey: "" } } });
+  d.uygulamaKaydet({ id, ad: "ucler 2", kaynaklar: { revenuecat: { projectId: "w" } }, gizli: { revenuecat: { apiKey: "" } } });
   assert.equal(d.ayar().uygulamalar[0].ad, "ucler 2");
   // Kullanıcı yenileyip izin verdi: anahtarlar yerinde, sonraki okumalar bellekte.
   reddet = false; d.kilidiSifirla();
-  assert.equal(d.gizliler()[id].umami.apiKey, "ilk-anahtar");
+  assert.equal(d.gizliler()[id].revenuecat.apiKey, "ilk-anahtar");
   d.gizliler(); d.gizliler();
   assert.equal(cozme, 2);
   d.uygulamaKaydet({ id, ad: "ucler 2", gizli: { supabase: { key: "yeni" } } });
-  assert.deepEqual(Object.keys(depo(klasor, kasa).gizliler()[id]).sort(), ["supabase", "umami"]);
+  assert.deepEqual(Object.keys(depo(klasor, kasa).gizliler()[id]).sort(), ["revenuecat", "supabase"]);
 });
 
 test("eski sürümden kalan ayar: dizin ilk çözmede kurulur", () => {
   const klasor = fs.mkdtempSync(path.join(os.tmpdir(), "appati-"));
-  const id = depo(klasor, kasa).uygulamaKaydet({ ad: "x", gizli: { umami: { apiKey: "k" } } });
+  const id = depo(klasor, kasa).uygulamaKaydet({ ad: "x", gizli: { revenuecat: { apiKey: "k" } } });
   const dosya = path.join(klasor, "ayar.json");
   const eski = JSON.parse(fs.readFileSync(dosya, "utf8")); delete eski.gizliVar; fs.writeFileSync(dosya, JSON.stringify(eski));
   const d = depo(klasor, kasa);
-  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.umami.apiKey, false);
+  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.revenuecat.apiKey, false);
   d.gizliler();
-  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.umami.apiKey, true);
-  assert.equal(JSON.parse(fs.readFileSync(dosya, "utf8")).gizliVar[id].umami.apiKey, true);
+  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.revenuecat.apiKey, true);
+  assert.equal(JSON.parse(fs.readFileSync(dosya, "utf8")).gizliVar[id].revenuecat.apiKey, true);
 });
 
 test("şifreleme yoksa gizli anahtar yazılmaz", () => {
   const klasor = fs.mkdtempSync(path.join(os.tmpdir(), "appati-"));
   const d = depo(klasor, { ...kasa, isEncryptionAvailable: () => false });
-  assert.throws(() => d.uygulamaKaydet({ ad: "x", gizli: { umami: { apiKey: "k" } } }), /Anahtar Zinciri/);
+  assert.throws(() => d.uygulamaKaydet({ ad: "x", gizli: { revenuecat: { apiKey: "k" } } }), /Anahtar Zinciri/);
   assert.ok(!fs.existsSync(path.join(klasor, "gizli.bin")));
 });
 
 test("genel ayarlar sınırlanır", () => {
   const d = depo(fs.mkdtempSync(path.join(os.tmpdir(), "appati-")), kasa);
   d.genelKaydet({ yenilemeDk: 1, sabit: 1 });
-  assert.deepEqual(d.ayar().genel, { yenilemeDk: 5, saydamlik: 60, sabit: true, acilistaBaslat: false, bildirim: true, centik: true, medya: true, tema: "sistem", cubukSayi: "aktifBugun" });
+  assert.deepEqual(d.ayar().genel, { yenilemeDk: 5, saydamlik: 60, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, sabit: true, acilistaBaslat: false, bildirim: true, centik: true, medya: true, tema: "sistem", cubukSayi: "aktifBugun" });
   // Tek alan gönderilince diğerleri yerinde kalır.
   d.genelKaydet({ medya: false });
   assert.deepEqual([d.ayar().genel.yenilemeDk, d.ayar().genel.sabit, d.ayar().genel.medya], [5, true, false]);
+  d.genelKaydet({ centikEn: 9999, centikBoy: 1, centikSaydamlik: 100 });
+  assert.deepEqual([d.ayar().genel.centikEn, d.ayar().genel.centikBoy, d.ayar().genel.centikSaydamlik], [480, 22, 80]);
   d.genelKaydet({ yenilemeDk: 30, tema: "koyu", saydamlik: 250 });
   assert.equal(d.ayar().genel.yenilemeDk, 30);
   assert.deepEqual([d.ayar().genel.tema, d.ayar().genel.saydamlik], ["koyu", 100]);

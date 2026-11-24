@@ -12,7 +12,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   const uygulamalar = demoUygulamalar(simdi);
   const paket = {
     durum: { uygulamalar, ozet: ozetle(uygulamalar), zaman: simdi.toISOString(), demo: true, yukleniyor: false },
-    ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true }, uygulamalar: [] },
+    ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true, centikEn: 300, centikBoy: 32, centikSaydamlik: 0 }, uygulamalar: [] },
     katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: "önizleme", vurgu: null,
   };
   const cikti = path.join(__dirname, "..", "preview");
@@ -51,7 +51,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
       kpi: { kayitli: 21, yeniKayitBugun: 0, yeniKayit7g: 0, yeniKayitOnceki7g: 0, aktifBugun: 1, aktif7g: 1 },
       seri: { kayit: uygulamalar[0].seri.kayit.map((n) => ({ g: n.g, v: 0 })), aktif: uygulamalar[0].seri.aktif.map((n, i) => ({ g: n.g, v: i === 29 ? 1 : 0 })) }, aktifGecmisGun: 1,
       huni: [{ etiket: "Kayıt olan", deger: 0 }, { etiket: "Eşitlenen", deger: 0 }] }),
-    bos({ id: "s3", ad: "Bozuk", kaynaklar: [{ tur: "umami", ad: "Umami", tamam: false, hata: "Anahtar reddedildi: {\"error\":\"Unauthorized\"}", uyarilar: [] }] }),
+    bos({ id: "s3", ad: "Bozuk", kaynaklar: [{ tur: "ganalytics", ad: "Google Analytics", tamam: false, hata: "Anahtar reddedildi: {\"error\":\"Unauthorized\"}", uyarilar: [] }] }),
   ];
   for (const u of seyrek) u.notlar = notlar(u);
   const asil = paket.durum;
@@ -78,8 +78,9 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   };
   const rakamlar = [{ etiket: "aktif bugün", deger: "299" }, { etiket: "ziyaretçi", deger: "413" }, { etiket: "yeni kayıt", deger: "31" }];
   const calan = { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı Adı (Uzun Sürüm)", alt: "Örnek Sanatçı", kapak: null };
-  await centik("8-centik-kucuk", { acik: false, kb: 38, kucuk: { kaynak: "spotify", kapak: null }, rakamlar, demo: false, medyaAcik: true, medya: calan });
-  await centik("8-centik-calan", { acik: true, kb: 38, kucuk: { kaynak: "spotify", kapak: null }, rakamlar, demo: false, medyaAcik: true, medya: { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı Adı (Uzun Sürüm)", alt: "Örnek Sanatçı", kapak: null } });
+  await centik("8-centik-kucuk", { acik: false, kb: 32, en: 300, alfa: 1, kucuk: { kaynak: "spotify", kapak: null }, rakamlar, demo: false, medyaAcik: true, medya: calan });
+  await centik("8-centik-kucuk-saydam", { acik: false, kb: 40, en: 380, alfa: 0.5, kucuk: { kaynak: "spotify", kapak: null }, rakamlar, demo: false, medyaAcik: true, medya: calan });
+  await centik("8-centik-calan", { acik: true, kb: 32, en: 300, alfa: 1, kucuk: { kaynak: "spotify", kapak: null }, rakamlar, demo: false, medyaAcik: true, medya: { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı Adı (Uzun Sürüm)", alt: "Örnek Sanatçı", kapak: null } });
   await centik("8-centik-youtube", { acik: true, kb: 24, kucuk: null, rakamlar: [], demo: false, medyaAcik: true, medya: { kaynak: "youtube", tarayici: "Safari", oynuyor: null, baslik: "Mol kavramı", alt: "YouTube · Safari", kapak: null } });
   await centik("8-centik-medyasiz", { acik: true, kb: 38, kucuk: null, rakamlar, demo: false, medyaAcik: false, medya: null });
   await centik("8-centik-bos", { acik: true, kb: 38, kucuk: null, rakamlar, demo: true, medyaAcik: true, medya: null });

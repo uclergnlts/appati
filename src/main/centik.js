@@ -5,7 +5,8 @@ const { BrowserWindow, screen } = require("electron");
 const path = require("node:path");
 
 const EN = 540, BOY = 150;
-const KUCUK_EN = 310;   // çalarken görünen küçük ada: çentik + iki yanda birer "kulak"
+const OMUZ = 8;         // küçük adanın iki yanındaki içbükey köşe payı (pencere bu kadar daha geniştir)
+const VARSAYILAN_OLCU = { en: 300, boy: 32, alfa: 1 }; // çalarken görünen küçük ada: çentik + iki yanda birer "kulak"
 const BOLGE_EN = 200;   // çentiğin yaklaşık genişliği (pt)
 const BOLGE_BOY = 6;    // üst kenardan itibaren tetikleyen şerit
 
@@ -24,14 +25,13 @@ function adim(d, imlec, ekran, pencere, bolge = { en: BOLGE_EN, boy: BOLGE_BOY }
   return cikma >= 3 ? { acik: false, girme: 0, cikma: 0, eylem: "kapat" } : { acik: true, girme: 0, cikma, eylem: null };
 }
 
-// Küçük adanın yüksekliği menü çubuğununki kadardır (çentikli ekranda çentik yüksekliği).
-const kucukBoy = (menuCubugu) => Math.min(40, Math.max(24, Math.round(menuCubugu) || 24));
-
-function centikKur({ veriAl, acildi, kapandi }) {
+// olculer(): { en, boy, alfa } — küçük adanın genişliği, yüksekliği ve zemin opaklığı (Ayarlar > Çentik).
+function centikKur({ veriAl, acildi, kapandi, olculer = () => VARSAYILAN_OLCU }) {
   const pencere = new BrowserWindow({
     width: EN, height: BOY, show: false, frame: false, transparent: true, resizable: false, movable: false,
     minimizable: false, maximizable: false, fullscreenable: false, skipTaskbar: true, hasShadow: false,
     focusable: false, acceptFirstMouse: true, type: "panel", backgroundColor: "#00000000",
+    roundedCorners: false, // macOS pencerenin üst köşelerini yuvarlamasın; ada ekranın tepesine düz otursun
     enableLargerThanScreen: true, // pencere menü çubuğunun üstüne, ekranın en tepesine yerleşebilsin
     webPreferences: { preload: path.join(__dirname, "..", "preload.js"), contextIsolation: true, sandbox: true, nodeIntegration: false },
   });
@@ -42,18 +42,22 @@ function centikKur({ veriAl, acildi, kapandi }) {
   pencere.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 
   let d = { acik: false, girme: 0, cikma: 0 };
-  let sayac = null, gizleme = null, kucukGorunur = false, calisiyor = false, kapaniyor = false;
+  let sayac = null, gizleme = null, kucukGorunur = false, calisiyor = false, kapaniyor = false, onizleBitis = 0;
 
   // Çentik dahili ekrandadır; dahili ekran yoksa birincil ekranın üst ortası kullanılır.
   function olcu() {
     const e = screen.getAllDisplays().find((x) => x.internal) || screen.getPrimaryDisplay();
-    return { ekran: e.bounds, kb: kucukBoy(e.workArea.y - e.bounds.y) };
+    const o = olculer();
+    return { ekran: e.bounds, kb: o.boy, en: o.en, alfa: o.alfa };
   }
 
   function paket(acik) {
     const veri = veriAl();
     const caliyor = Boolean(veri.medya && veri.medya.oynuyor === true);
-    return { acik, kb: olcu().kb, kucuk: caliyor ? { kapak: veri.medya.kapak, kaynak: veri.medya.kaynak } : null, ...veri };
+    const { kb, en, alfa } = olcu();
+    // Ayar değiştirilirken bir şey çalmıyorsa da ada kısa süre gösterilir ki boyut görülebilsin.
+    const kucuk = caliyor ? { kapak: veri.medya.kapak, kaynak: veri.medya.kaynak } : Date.now() < onizleBitis ? { kapak: null, kaynak: "onizleme" } : null;
+    return { acik, kb, en, alfa, kucuk, ...veri };
   }
 
   // Kapalı hâl: bir şey çalıyorsa küçük ada görünür, çalmıyorsa pencere gizlenir.
@@ -61,8 +65,9 @@ function centikKur({ veriAl, acildi, kapandi }) {
     if (d.acik || pencere.isDestroyed()) return;
     const p = paket(false);
     if (p.kucuk && calisiyor) {
-      const { ekran, kb } = olcu();
-      pencere.setBounds({ x: Math.round(ekran.x + ekran.width / 2 - KUCUK_EN / 2), y: ekran.y, width: KUCUK_EN, height: kb });
+      const { ekran, kb, en } = olcu();
+      const genis = en + 2 * OMUZ;
+      pencere.setBounds({ x: Math.round(ekran.x + ekran.width / 2 - genis / 2), y: ekran.y, width: genis, height: kb });
       if (!pencere.isVisible()) pencere.showInactive();
       kucukGorunur = true;
     } else {
@@ -85,8 +90,8 @@ function centikKur({ veriAl, acildi, kapandi }) {
 
   function tik() {
     if (pencere.isDestroyed()) return;
-    const { ekran, kb } = olcu();
-    const bolge = kucukGorunur ? { en: KUCUK_EN, boy: kb } : undefined;
+    const { ekran, kb, en } = olcu();
+    const bolge = kucukGorunur ? { en, boy: kb } : undefined;
     const sonuc = adim(d, screen.getCursorScreenPoint(), ekran, pencere.getBounds(), bolge);
     d = { acik: sonuc.acik, girme: sonuc.girme, cikma: sonuc.cikma };
     if (sonuc.eylem === "ac") {
@@ -111,6 +116,13 @@ function centikKur({ veriAl, acildi, kapandi }) {
       if (pencere.isDestroyed() || !calisiyor) return;
       if (d.acik) pencere.webContents.send("centik", paket(true)); else if (!kapaniyor) dinlen();
     },
+    // Ayarlar ekranında boyut / saydamlık değişince küçük adayı birkaç saniye göster.
+    onizle() {
+      if (!calisiyor || pencere.isDestroyed()) return;
+      onizleBitis = Date.now() + 4000;
+      if (!d.acik && !kapaniyor) dinlen();
+      setTimeout(() => { if (!d.acik && !kapaniyor && !pencere.isDestroyed()) dinlen(); }, 4100);
+    },
     baslat() { calisiyor = true; clearInterval(sayac); sayac = setInterval(tik, 150); },
     durdur() {
       calisiyor = false; clearInterval(sayac); sayac = null; clearTimeout(gizleme); kapaniyor = false;
@@ -122,4 +134,4 @@ function centikKur({ veriAl, acildi, kapandi }) {
   };
 }
 
-module.exports = { centikKur, adim, kucukBoy, EN, BOY, KUCUK_EN };
+module.exports = { centikKur, adim, EN, BOY, OMUZ, VARSAYILAN_OLCU };

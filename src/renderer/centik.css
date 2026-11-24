@@ -8,7 +8,7 @@ body {
 body.onizleme { background: linear-gradient(160deg, #e9a66b, #c95f7c 40%, #3d6fb3 75%, #1f3a5c); }
 
 #ada {
-  position: absolute; inset: 0 0 10px 0; background: #000; border-radius: 0 0 26px 26px;
+  position: absolute; inset: 0 0 10px 0; background: rgb(0 0 0 / var(--alfa, 1)); border-radius: 0 0 26px 26px;
   padding: 42px 18px 14px; display: flex; gap: 16px; align-items: center;
   transform-origin: top center; transform: scale(0.37, 0.2); opacity: 0;
   transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.15), opacity 0.14s ease-out;
@@ -45,16 +45,23 @@ button:focus-visible { outline: 2px solid #6da7ec; outline-offset: 2px; }
 .acik-degil span { color: #98978f; width: 100%; font-size: 11.5px; }
 .ornek { position: absolute; top: 12px; left: 26px; font-size: 10.5px; color: #98978f; letter-spacing: 0.04em; text-transform: uppercase; }
 
-/* Küçük ada: çalarken çentiğin iki yanında görünen "kulaklar". Açık adanın üst şeridinde de yerinde kalır. */
+/* Küçük ada: çalarken çentiğin iki yanında görünen "kulaklar". Çentiğin devamı gibi durması için üstü düz ve
+   ekranın tepesine bitişik, alt köşeleri çentik gibi küçük yarıçaplı, üst köşelerinde içbükey "omuz" var. */
 #kucuk {
-  position: absolute; top: 0; left: 50%; width: 310px; height: var(--kb, 32px); margin-left: -155px; z-index: 2;
-  background: #000; border-radius: 0 0 14px 14px; padding: 0 13px;
+  position: absolute; top: 0; left: 50%; width: var(--ken, 300px); height: var(--kb, 32px); transform: translateX(-50%); z-index: 2;
+  background: rgb(0 0 0 / var(--alfa, 1)); border-radius: 0 0 11px 11px; padding: 0 12px;
   display: flex; align-items: center; justify-content: space-between; pointer-events: none;
 }
 #kucuk[hidden] { display: none; }
-.mini-kapak { width: calc(var(--kb, 32px) - 10px); height: calc(var(--kb, 32px) - 10px); border-radius: 6px; object-fit: cover; background: #1f1f22; display: grid; place-items: center; color: #98978f; }
+.omuz { position: absolute; top: 0; width: 8px; height: 8px; }
+.omuz.sol { left: -8px; background: radial-gradient(circle at 0 100%, transparent 7.5px, rgb(0 0 0 / var(--alfa, 1)) 8px); }
+.omuz.sag { right: -8px; background: radial-gradient(circle at 100% 100%, transparent 7.5px, rgb(0 0 0 / var(--alfa, 1)) 8px); }
+/* Ada açıkken şerit onun üst kısmında kalır; kendi zemini ve omuzları gerekmez. */
+#ada.acik ~ #kucuk { background: transparent; }
+#ada.acik ~ #kucuk .omuz { display: none; }
+.mini-kapak { width: calc(var(--kb, 32px) - 10px); height: calc(var(--kb, 32px) - 10px); border-radius: 5px; object-fit: cover; background: #1f1f22; display: grid; place-items: center; color: #98978f; }
 .mini-kapak svg { width: 13px; height: 13px; }
-.dalga { display: flex; align-items: center; gap: 2.5px; height: 16px; }
+.dalga { display: flex; align-items: center; gap: 2.5px; height: min(16px, calc(var(--kb, 32px) - 14px)); }
 .dalga i { display: block; width: 3px; height: 100%; border-radius: 2px; background: #f0efec; transform-origin: center; animation: dalga 0.9s ease-in-out infinite; }
 .dalga i:nth-child(1) { animation-duration: 0.82s; animation-delay: -0.3s; }
 .dalga i:nth-child(2) { animation-duration: 0.64s; animation-delay: -0.1s; }

@@ -74,14 +74,18 @@ function ciz(v) {
 // (çubukların canlandırması her güncellemede baştan başlamasın).
 let kucukImza = null;
 function kucukCiz(v) {
-  document.documentElement.style.setProperty("--kb", `${v.kb || 32}px`);
+  const kok = document.documentElement.style;
+  kok.setProperty("--kb", `${v.kb || 32}px`);
+  kok.setProperty("--ken", `${v.en || 300}px`);
+  kok.setProperty("--alfa", String(v.alfa ?? 1));
   const imza = v.kucuk ? `${v.kucuk.kaynak}|${v.kucuk.kapak}` : null;
   if (imza === kucukImza) return;
   kucukImza = imza;
   kucuk.hidden = !v.kucuk;
   if (!v.kucuk) { kucuk.replaceChildren(); return; }
   const kapak = v.kucuk.kapak ? h("img", { class: "mini-kapak", src: v.kucuk.kapak, alt: "" }) : h("div", { class: "mini-kapak" }, ikon("nota"));
-  kucuk.replaceChildren(kapak, h("div", { class: "dalga", role: "img", "aria-label": "Çalıyor" }, [0, 1, 2, 3, 4].map(() => h("i"))));
+  kucuk.replaceChildren(h("span", { class: "omuz sol" }), h("span", { class: "omuz sag" }), kapak,
+    h("div", { class: "dalga", role: "img", "aria-label": "Çalıyor" }, [0, 1, 2, 3, 4].map(() => h("i"))));
 }
 
 kopru.centikDinle((v) => {

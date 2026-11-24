@@ -228,11 +228,14 @@ function ipcKur() {
   ipcMain.handle("uygulama:kaydet", async (_o, gelen) => { kayit.uygulamaKaydet(gelen); yenile(); return paket(); });
   ipcMain.handle("uygulama:sil", async (_o, id) => { kayit.uygulamaSil(String(id)); yenile(); return paket(); });
   ipcMain.handle("genel:kaydet", async (_o, yeni) => {
+    const once = kayit.ayar().genel;
     kayit.genelKaydet(yeni || {});
+    const sonra = kayit.ayar().genel;
     sabitle();
     temaUygula();
     zamanla();
     centikAyarla();
+    if (centik && ["centikEn", "centikBoy", "centikSaydamlik"].some((a) => once[a] !== sonra[a])) centik.onizle();
     yayinla();
     if (MAC && app.isPackaged) app.setLoginItemSettings({ openAtLogin: kayit.ayar().genel.acilistaBaslat });
     return paket();
@@ -271,6 +274,7 @@ app.whenReady().then(() => {
   // Çentik açıkken çalan içerik saniyede bir sorulur; kapalıyken hiç sorulmaz.
   centik = centikKur({
     veriAl: centikVerisi,
+    olculer: () => { const g = kayit.ayar().genel; return { en: g.centikEn, boy: g.centikBoy, alfa: 1 - g.centikSaydamlik / 100 }; },
     acildi: medyaDongu,
     kapandi: medyaDongu,
   });

@@ -5,7 +5,7 @@ const zlib = require("node:zlib");
 const crypto = require("node:crypto");
 const { istekci, gunAnahtari, GUN } = require("../src/main/util");
 const supabase = require("../src/main/sources/supabase");
-const umami = require("../src/main/sources/umami");
+const ganalytics = require("../src/main/sources/ganalytics");
 const revenuecat = require("../src/main/sources/revenuecat");
 const appstore = require("../src/main/sources/appstore");
 const googleplay = require("../src/main/sources/googleplay");
@@ -87,26 +87,39 @@ test("istek: bağlantı hatasında bir kez yeniden dener, sonra anlaşılır hat
   await assert.rejects(hepDusen("https://x"), /Bağlanılamadı \(ENOTFOUND\)/);
 });
 
-test("umami: eski ve yeni özet biçimi, kaynaklar, seri", async () => {
-  const bugun = gunAnahtari(simdi);
-  let ozetSira = 0;
+test("google analytics: raporlar, tarih aralıkları, kaynak adları, hata çevirileri", async () => {
+  const { privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const hesap = JSON.stringify({ client_email: "a@b.iam.gserviceaccount.com", project_id: "proje", private_key: privateKey.export({ type: "pkcs8", format: "pem" }) });
+  const satir = (boyutlar, metrikler) => ({ dimensionValues: boyutlar.map((value) => ({ value })), metricValues: metrikler.map((v) => ({ value: String(v) })) });
+  const bugun = gunAnahtari(simdi).replaceAll("-", "");
+  const govdeler = [];
   const { ctx } = sahte([
-    [/\/stats/, () => json(ozetSira++ === 0 ? { visitors: { value: 12, prev: 9 }, pageviews: { value: 40 } } : { visitors: 80, pageviews: 300 })],
-    [/\/pageviews/, () => json({ pageviews: [{ x: `${bugun} 00:00:00`, y: 40 }], sessions: [{ x: `${bugun} 00:00:00`, y: 14 }] })],
-    [/\/active/, () => json({ visitors: 3 })],
-    [/type=referrer/, () => json([{ x: "google.com", y: 20 }, { x: "", y: 9 }])],
-    [/type=path/, () => new Response("bad", { status: 400 })],
-    [/type=url/, () => json([{ x: "/", y: 50 }])],
-    [/type=country/, () => json([{ x: "TR", y: 60 }])],
+    [/oauth2/, () => json({ access_token: "tok" })],
+    [/runRealtimeReport/, () => json({ rows: [satir([], [4])] })],
+    [/batchRunReports/, (_u, s) => {
+      const g = JSON.parse(s.body); govdeler.push(g);
+      if (g.requests.length === 1) return json({ reports: [{ rows: [satir(["Turkey"], [60]), satir(["(not set)"], [2])] }] });
+      return json({ reports: [
+        { rows: [satir([], [12, 40])] },
+        { rows: [satir(["date_range_0"], [80, 300])] }, // önceki hafta boş: satırı hiç gelmez
+        { rows: [satir([bugun], [14, 40])] },
+        { rows: [satir(["google"], [20]), satir(["(direct)"], [9]), satir(["sifir"], [0])] },
+        { rows: [satir(["/"], [50])] },
+      ] });
+    }],
   ]);
-  const r = await umami({ websiteId: "w" }, { apiKey: "a" }, ctx);
-  assert.equal(r.kpi.ziyaretciBugun, 12);
-  assert.equal(r.kpi.ziyaretci7g, 80);
-  assert.equal(r.kpi.sitedeSimdi, 3);
+  const r = await ganalytics({ propertyId: "properties/123" }, { serviceAccount: hesap }, ctx);
+  assert.deepEqual([r.kpi.ziyaretciBugun, r.kpi.goruntulemeBugun, r.kpi.ziyaretci7g, r.kpi.ziyaretciOnceki7g, r.kpi.sitedeSimdi], [12, 40, 80, 0, 4]);
   assert.equal(r.seri.ziyaret[29].v, 14);
-  assert.equal(r.kaynaklar[1].ad, "Doğrudan (adres yazan, yer imi)");
+  assert.deepEqual(r.kaynaklar, [{ ad: "google", v: 20 }, { ad: "Doğrudan (adres yazan, yer imi)", v: 9 }]);
   assert.deepEqual(r.sayfalar, [{ ad: "/", v: 50 }]);
-  assert.deepEqual(r.uyarilar, []);
+  assert.deepEqual(r.ulkeler, [{ ad: "Turkey", v: 60 }, { ad: "Bilinmiyor", v: 2 }]);
+  assert.equal(govdeler.find((g) => g.requests.length === 5).requests[1].dateRanges.length, 2);
+
+  await assert.rejects(ganalytics({ propertyId: "G-ABC123" }, { serviceAccount: hesap }, ctx), /yalnızca rakamlardan/);
+  const ret = (mesaj, durum = 403) => sahte([[/oauth2/, () => json({ access_token: "t" })], [/analyticsdata/, () => new Response(JSON.stringify({ error: { message: mesaj } }), { status: durum })]]).ctx;
+  await assert.rejects(ganalytics({ propertyId: "1" }, { serviceAccount: hesap }, ret("Google Analytics Data API has not been used in project 9 before or it is disabled.")), /Data API” kapalı/);
+  await assert.rejects(ganalytics({ propertyId: "1" }, { serviceAccount: hesap }, ret("User does not have sufficient permissions for this property.")), /Görüntüleyici olarak ekle/);
 });
 
 test("revenuecat: özet metrikleri", async () => {
@@ -168,7 +181,7 @@ test("birleştirme: bozuk kaynak diğerlerini düşürmez, boş kaynak atlanır"
     [/revenuecat/, () => new Response("no", { status: 403 })],
   ]);
   const u = await uygulamayiTopla(
-    { id: "a1", ad: "ucler.", kaynaklar: { supabase: { url: "https://x.supabase.co" }, revenuecat: { projectId: "p" }, umami: { websiteId: "w" } } },
+    { id: "a1", ad: "ucler.", kaynaklar: { supabase: { url: "https://x.supabase.co" }, revenuecat: { projectId: "p" }, appstore: { appId: "1" } } },
     { supabase: { key: "k" }, revenuecat: { apiKey: "sk" } }, ctx);
   assert.deepEqual(u.kaynaklar.map((k) => [k.tur, k.tamam]), [["supabase", true], ["revenuecat", false]]);
   assert.equal(u.kpi.kayitli, 1);
@@ -177,6 +190,18 @@ test("birleştirme: bozuk kaynak diğerlerini düşürmez, boş kaynak atlanır"
   const o = ozetle([u]);
   assert.equal(o.kpi.kayitli, 1);
   assert.equal(o.notlar[0].uygulama, "ucler.");
+});
+
+test("google analytics, Google Play'e girilen servis hesabını paylaşır", async () => {
+  const { privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const hesap = JSON.stringify({ client_email: "a@b.iam.gserviceaccount.com", private_key: privateKey.export({ type: "pkcs8", format: "pem" }) });
+  const { ctx, cagrilar } = sahte([[/oauth2/, () => json({ access_token: "t" })], [/analyticsdata/, () => json({ reports: [] })], [/androidpublisher/, () => json({ reviews: [] })]]);
+  const u = await uygulamayiTopla({ id: "g1", ad: "x", kaynaklar: { ganalytics: { propertyId: "123" }, googleplay: { packageName: "app.x" } } }, { googleplay: { serviceAccount: hesap } }, ctx);
+  assert.deepEqual(u.kaynaklar.map((k) => [k.tur, k.tamam]), [["ganalytics", true], ["googleplay", true]]);
+  assert.ok(cagrilar.some((c) => c.url.includes("analyticsdata")));
+  // Google Play de yoksa Analytics sessizce atlanır.
+  const v = await uygulamayiTopla({ id: "g2", ad: "y", kaynaklar: { ganalytics: { propertyId: "123" } } }, {}, ctx);
+  assert.deepEqual(v.kaynaklar, []);
 });
 
 test("örnek veri eksiksiz ve gün içinde sabit", () => {

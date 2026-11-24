@@ -1,25 +1,13 @@
 // Google Play: yorumlar (Android Publisher API). Servis hesabı JSON'u gerekir;
 // hesap Play Console'da "Kullanıcılar ve izinler" altında yorumları görme iznine sahip olmalı.
 // Not: API yalnızca son bir haftanın yorumlarını verir. Kurulum sayıları bu API'de yoktur.
-const { jwtImzala } = require("../util");
+const { hesapCoz, googleJeton } = require("./google");
 
 module.exports = async function googleplay(ayar, gizli, { istek, simdi }) {
   if (!ayar.packageName) throw new Error("Paket adı eksik");
   if (!gizli.serviceAccount) throw new Error("Servis hesabı JSON'u eksik");
-  let hesap;
-  try { hesap = JSON.parse(gizli.serviceAccount); } catch { throw new Error("Servis hesabı JSON'u okunamadı"); }
-  if (!hesap.client_email || !hesap.private_key) throw new Error("Servis hesabı JSON'unda client_email / private_key yok");
-
-  const iat = Math.floor(simdi.getTime() / 1000);
-  const onay = jwtImzala("RS256", {}, {
-    iss: hesap.client_email, scope: "https://www.googleapis.com/auth/androidpublisher",
-    aud: "https://oauth2.googleapis.com/token", iat, exp: iat + 600,
-  }, hesap.private_key);
-  const jeton = await istek("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: onay }).toString(),
-  });
+  const hesap = hesapCoz(gizli.serviceAccount);
+  const jeton = { access_token: await googleJeton(hesap, "https://www.googleapis.com/auth/androidpublisher", { istek, simdi }) };
 
   let r;
   try {

@@ -5,7 +5,8 @@ const Module = require("node:module");
 // centik.js Electron'u yükler; saf karar işlevini sınamak için sahtesiyle değiştir.
 const asil = Module._load;
 Module._load = (ad, ...kalan) => (ad === "electron" ? { BrowserWindow: class {}, screen: {} } : asil(ad, ...kalan));
-const { adim, kucukBoy, EN, BOY, KUCUK_EN } = require("../src/main/centik");
+const { adim, EN, BOY, VARSAYILAN_OLCU } = require("../src/main/centik");
+const KUCUK_EN = VARSAYILAN_OLCU.en;
 const { medya, spotifyCoz, youtubeCoz } = require("../src/main/medya");
 Module._load = asil;
 
@@ -40,11 +41,10 @@ test("çentik: kenardan geçen ya da menüye giden fare açmaz", () => {
   assert.equal(adim({ acik: false, girme: 1, cikma: 0 }, { x: -960, y: 1 }, sol, pencere).eylem, "ac");
 });
 
-test("çentik: küçük ada görünürken adanın tamamı tetikler; yüksekliği menü çubuğuna uyar", () => {
+test("çentik: küçük ada görünürken adanın tamamı tetikler", () => {
   const kulak = { x: 756 + 140, y: 20 }; // çentiğin sağındaki kulak, üst şeridin altında
   assert.equal(adim({ acik: false, girme: 1, cikma: 0 }, kulak, ekran, pencere).acik, false);
   assert.equal(adim({ acik: false, girme: 1, cikma: 0 }, kulak, ekran, pencere, { en: KUCUK_EN, boy: 38 }).eylem, "ac");
-  assert.deepEqual([kucukBoy(38), kucukBoy(24.5), kucukBoy(0), kucukBoy(90)], [38, 25, 24, 40]);
 });
 
 test("medya: Spotify ve YouTube çıktıları çözülür", () => {
