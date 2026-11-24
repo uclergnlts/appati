@@ -355,13 +355,15 @@ function ayarGorunumu() {
   const bildirim = h("input", { type: "checkbox", checked: a.genel.bildirim });
   const cubuk = h("select", { "aria-label": "Menü çubuğunda gösterilen sayı" }, [["aktifBugun", "Aktif kullanıcı (bugün)"], ["ziyaretciBugun", "Site ziyaretçisi (bugün)"], ["yeniKayitBugun", "Yeni kayıt (bugün)"], ["mrr", "Aylık yinelenen gelir (MRR)"], ["yok", "Sayı gösterme"]]
     .map(([d, e]) => h("option", { value: d, selected: a.genel.cubukSayi === d ? "" : null }, e)));
+  const centik = h("input", { type: "checkbox", checked: a.genel.centik });
+  const medyaKutu = h("input", { type: "checkbox", checked: a.genel.medya });
   const saydam = h("input", { type: "range", min: 0, max: 100, step: 5, value: a.genel.saydamlik, "aria-label": "Saydamlık",
     oninput: (o) => gorunumUygula({ ...a.genel, saydamlik: Number(o.target.value) }) });
   const kaydet = async (ek) => {
-    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), bildirim: bildirim.checked, cubukSayi: cubuk.value, ...(ek || {}) });
+    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), bildirim: bildirim.checked, cubukSayi: cubuk.value, centik: centik.checked, medya: medyaKutu.checked, ...(ek || {}) });
     ciz();
   };
-  for (const e of [dk, sabit, acilis, saydam, bildirim, cubuk]) e.addEventListener("change", () => kaydet());
+  for (const e of [dk, sabit, acilis, saydam, bildirim, cubuk, centik, medyaKutu]) e.addEventListener("change", () => kaydet());
   const temalar = h("div", { class: "secici", role: "group", "aria-label": "Tema" }, [["sistem", "Sistem"], ["acik", "Açık"], ["koyu", "Koyu"]].map(([ad, etiket]) =>
     h("button", { type: "button", "aria-pressed": String(a.genel.tema === ad), onclick: () => kaydet({ tema: ad }) }, etiket)));
 
@@ -382,6 +384,11 @@ function ayarGorunumu() {
           h("div", { class: "kucuk-yazi" }, "Sistem: macOS açık ya da koyu görünüme geçtiğinde panel de geçer. Düğmeler macOS vurgu rengini kullanır."),
           h("label", { class: "alan" }, h("span", null, "Arka plan saydamlığı"), saydam),
           h("div", { class: "kucuk-yazi" }, "macOS'ta “Saydamlığı azalt” açıksa panel opak görünür."))),
+      h("section", { class: "bolum" }, h("h2", null, "Çentik"),
+        h("div", { class: "kart" },
+          h("label", { class: "onay", style: "margin-top:0" }, centik, "Fare ekranın üst ortasına gelince özeti aç"),
+          h("label", { class: "onay" }, medyaKutu, "Çalan şarkıyı ve videoyu göster (Spotify, YouTube)"),
+          h("div", { class: "kucuk-yazi" }, "Özete tıklayınca tam panel açılır. macOS ilk seferde Spotify ve tarayıcı için izin sorar. YouTube'da oynat/duraklat için tarayıcıda “Apple Events'ten JavaScript'e İzin Ver” açık olmalıdır."))),
       h("section", { class: "bolum" }, h("h2", null, "Genel"),
         h("div", { class: "kart" },
           h("label", { class: "alan", style: "margin-top:0" }, h("span", null, "Yenileme sıklığı (dakika)"), dk),

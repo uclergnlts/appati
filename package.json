@@ -49,8 +49,11 @@
         }
       ],
       "extendInfo": {
-        "LSUIElement": true
-      }
+        "LSUIElement": true,
+        "NSAppleEventsUsageDescription": "Appati, çentikte çalan şarkıyı ve videoyu göstermek ve oynat/duraklat yapabilmek için Spotify ile tarayıcına erişir."
+      },
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     }
   }
 }

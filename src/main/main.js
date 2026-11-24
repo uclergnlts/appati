@@ -7,6 +7,8 @@ const { uygulamayiTopla, ozetle } = require("./collect");
 const { demoUygulamalar } = require("./demo");
 const { istekci } = require("./util");
 const { farkBul } = require("./bildirim");
+const { centikKur } = require("./centik");
+const { medya } = require("./medya");
 
 const GENISLIK = 440;
 const DEMO = process.env.APPATI_DEMO === "1";
@@ -18,6 +20,33 @@ let kayit = null;
 let durum = { uygulamalar: [], ozet: null, zaman: null, demo: false, yukleniyor: true };
 let suren = null;
 let zamanlayici = null;
+let centik = null;
+let medyaSayac = null;
+let sonMedya = null;
+const calan = medya();
+
+// Çentikteki özet: bugünün birkaç rakamı ve çalan şarkı / video.
+function centikVerisi() {
+  const k = (durum.ozet && durum.ozet.kpi) || {};
+  const birim = (durum.ozet && durum.ozet.paraBirimi) || "$";
+  const rakamlar = [["aktifBugun", "aktif bugün"], ["ziyaretciBugun", "ziyaretçi"], ["yeniKayitBugun", "yeni kayıt"], ["mrr", "MRR"]]
+    .filter(([a]) => k[a] !== undefined).slice(0, 3)
+    .map(([a, etiket]) => ({ etiket, deger: `${a === "mrr" ? birim : ""}${Math.round(k[a]).toLocaleString("tr-TR")}` }));
+  const medyaAcik = kayit.ayar().genel.medya;
+  return { rakamlar, demo: durum.demo, medyaAcik, medya: medyaAcik ? (DEMO && !MAC ? ORNEK_MEDYA : sonMedya) : null };
+}
+const ORNEK_MEDYA = { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı", alt: "Örnek Sanatçı", kapak: null };
+
+async function medyaYenile() {
+  if (!kayit.ayar().genel.medya) return;
+  sonMedya = await calan.durum();
+  if (centik) centik.gonder(centikVerisi());
+}
+
+function centikAyarla() {
+  if (!centik) return;
+  if (kayit.ayar().genel.centik) centik.baslat(); else centik.durdur();
+}
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
@@ -87,6 +116,7 @@ function tepsiKur() {
 
 function yayinla() {
   if (pencere && !pencere.isDestroyed()) pencere.webContents.send("durum", durum);
+  if (centik) centik.gonder(centikVerisi());
   if (tepsi && MAC) {
     // Simgenin yanındaki sayı: Ayarlar > Menü çubuğunda gösterilen sayı.
     const hangi = kayit.ayar().genel.cubukSayi;
@@ -149,11 +179,23 @@ function ipcKur() {
     sabitle();
     temaUygula();
     zamanla();
+    centikAyarla();
     yayinla();
     if (MAC && app.isPackaged) app.setLoginItemSettings({ openAtLogin: kayit.ayar().genel.acilistaBaslat });
     return paket();
   });
   ipcMain.handle("gizle", () => pencere.hide());
+  ipcMain.handle("panel:ac", () => { if (centik) centik.kapat(); goster(); });
+  ipcMain.handle("medya:komut", async (_o, komut) => {
+    if (!sonMedya || !["oynat", "sonraki", "onceki"].includes(komut)) return { tamam: false };
+    const sonuc = await calan.komut(sonMedya.kaynak, komut, sonMedya.tarayici);
+    setTimeout(medyaYenile, 350);
+    return sonuc;
+  });
+  ipcMain.handle("medya:ac", (_o, hangi) => {
+    if (hangi === "spotify") shell.openExternal("spotify:");
+    if (hangi === "youtube") shell.openExternal("https://www.youtube.com/");
+  });
   ipcMain.handle("cik", () => app.quit());
   ipcMain.handle("disari", (_o, adres) => {
     if (typeof adres === "string" && /^https:\/\//.test(adres)) shell.openExternal(adres);
@@ -172,6 +214,13 @@ app.whenReady().then(() => {
   nativeTheme.on("updated", vurguGonder);
   systemPreferences.on("accent-color-changed", vurguGonder);
   tepsiKur();
+  // Çentik açıkken çalan içerik saniyede bir sorulur; kapalıyken hiç sorulmaz.
+  centik = centikKur({
+    veriAl: centikVerisi,
+    acildi: () => { medyaYenile(); clearInterval(medyaSayac); medyaSayac = setInterval(medyaYenile, 1500); },
+    kapandi: () => { clearInterval(medyaSayac); medyaSayac = null; },
+  });
+  centikAyarla();
   globalShortcut.register("Alt+Command+A", ac_kapa);
   pencere.once("ready-to-show", goster);
   yenile();

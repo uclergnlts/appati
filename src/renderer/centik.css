@@ -1,0 +1,46 @@
+/* Çentikten aşağı açılan ada. Donanım çentiği siyah olduğu için tema ne olursa olsun siyahtır. */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+body {
+  font: 12.5px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
+  color: #f0efec; -webkit-font-smoothing: antialiased; user-select: none;
+}
+body.onizleme { background: linear-gradient(160deg, #e9a66b, #c95f7c 40%, #3d6fb3 75%, #1f3a5c); }
+
+#ada {
+  position: absolute; inset: 0 0 10px 0; background: #000; border-radius: 0 0 26px 26px;
+  padding: 42px 18px 14px; display: flex; gap: 16px; align-items: center;
+  transform-origin: top center; transform: scale(0.37, 0.2); opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.15), opacity 0.14s ease-out;
+}
+#ada.acik { transform: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #ada { transition: opacity 0.1s; transform: none; } }
+
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible { outline: 2px solid #6da7ec; outline-offset: 2px; }
+
+.rakamlar { flex: 1; min-width: 0; display: flex; gap: 14px; text-align: left; border-radius: 12px; padding: 6px 8px; }
+.rakamlar:hover { background: rgba(255, 255, 255, 0.09); }
+.rakam { min-width: 0; flex: 1; }
+.rakam b { display: block; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rakam span { display: block; color: #98978f; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bos { color: #98978f; }
+
+.ayrac { width: 1px; align-self: stretch; background: rgba(255, 255, 255, 0.14); flex: none; }
+
+.medya { flex: 1.15; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.kapak { width: 46px; height: 46px; border-radius: 9px; flex: none; object-fit: cover; background: #1f1f22; display: grid; place-items: center; color: #98978f; }
+.kapak svg { width: 20px; height: 20px; }
+.parca { flex: 1; min-width: 0; }
+.parca b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.parca span { display: block; color: #98978f; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.parca span.ipucu { color: #fab219; white-space: normal; font-size: 10.5px; line-height: 1.25; }
+.tuslar { display: flex; gap: 2px; flex: none; }
+.tus { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; }
+.tus:hover { background: rgba(255, 255, 255, 0.14); }
+.tus svg { width: 16px; height: 16px; fill: currentColor; }
+.ac { padding: 6px 11px; border-radius: 999px; background: rgba(255, 255, 255, 0.11); font-weight: 600; font-size: 12px; }
+.ac:hover { background: rgba(255, 255, 255, 0.2); }
+.acik-degil { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.acik-degil span { color: #98978f; width: 100%; font-size: 11.5px; }
+.ornek { position: absolute; top: 12px; left: 26px; font-size: 10.5px; color: #98978f; letter-spacing: 0.04em; text-transform: uppercase; }

@@ -12,7 +12,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   const uygulamalar = demoUygulamalar(simdi);
   const paket = {
     durum: { uygulamalar, ozet: ozetle(uygulamalar), zaman: simdi.toISOString(), demo: true, yukleniyor: false },
-    ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun" }, uygulamalar: [] },
+    ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true }, uygulamalar: [] },
     katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: "önizleme", vurgu: null,
   };
   const cikti = path.join(__dirname, "..", "preview");
@@ -40,6 +40,20 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   await cek("7-acik-genel", { ad: "genel" }, null, "light");
   await cek("7-acik-kullanici", { ad: "uyg", id: "demo-1", sekme: "kullanici" }, null, "light");
   await cek("7-acik-ayarlar", { ad: "ayar" }, null, "light");
+  // Çentik adası: çalan şarkıyla ve boşken.
+  const centik = async (ad, veri) => {
+    const sayfa = await tarayici.newPage({ viewport: { width: 540, height: 150 }, deviceScaleFactor: 2 });
+    sayfa.on("pageerror", (e) => hatalar.push(`${ad}: ${e.message}`));
+    sayfa.on("console", (m) => { if (m.type() === "error") hatalar.push(`${ad}: ${m.text()}`); });
+    await sayfa.addInitScript((v) => { window.__CENTIK__ = v; }, veri);
+    await sayfa.goto(`file://${path.join(__dirname, "..", "src", "renderer", "centik.html")}`);
+    await sayfa.waitForTimeout(400);
+    await sayfa.screenshot({ path: path.join(cikti, `${ad}.png`) });
+    await sayfa.close();
+  };
+  const rakamlar = [{ etiket: "aktif bugün", deger: "299" }, { etiket: "ziyaretçi", deger: "413" }, { etiket: "yeni kayıt", deger: "31" }];
+  await centik("8-centik-calan", { rakamlar, demo: false, medyaAcik: true, medya: { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı Adı (Uzun Sürüm)", alt: "Örnek Sanatçı", kapak: null } });
+  await centik("8-centik-bos", { rakamlar, demo: true, medyaAcik: true, medya: null });
   await tarayici.close();
   if (hatalar.length) { console.error(hatalar.join("\n")); process.exit(1); }
   console.log("Sayfa hatası yok. Görüntüler:", cikti);

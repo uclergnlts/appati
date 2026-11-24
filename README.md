@@ -6,6 +6,8 @@ Bütün uygulamalarının rakamları, Mac'inin kenarında tek panelde. Menü çu
 
 *Görseldeki sayılar örnek veridir. Solda koyu, ortada açık tema; sağda ayarlar.*
 
+![Çentik](docs/centik.png)
+
 ## Ne gösterir
 
 | Kaynak | Ne gelir | Gereken |
@@ -38,6 +40,14 @@ npm start          # paneli çalıştır
 npm run demo       # örnek veriyle çalıştır
 npm run dist       # dist/ altına .dmg ve .zip üret (Mac'te)
 ```
+
+## Çentik
+
+Fare ekranın üst ortasına (MacBook çentiğine) gelince çentikten aşağı küçük bir özet açılır: bugünün rakamları ve çalan şarkı ya da video. Rakamlara tıklayınca tam panel sağda açılır; fare uzaklaşınca özet kapanır. Çentiksiz ekranda aynı yerde çalışır. **Ayarlar > Çentik** altından kapatılır.
+
+- **Spotify:** çalan şarkı, kapak, önceki / oynat-duraklat / sonraki. Spotify masaüstü uygulaması açık olmalı.
+- **YouTube:** Chrome, Safari, Brave, Edge ya da Arc'ta açık videonun adı ve oynat/duraklat. Oynat/duraklat için tarayıcıda "Apple Events'ten JavaScript'e İzin Ver" açık olmalı (Chrome: Görünüm > Geliştirici; Safari: Geliştir menüsü).
+- Anahtar gerekmez. macOS ilk kullanımda "Appati, Spotify'ı denetlemek istiyor" diye izin sorar. Çalan içerik yalnızca özet açıkken sorulur.
 
 ## Bildirimler ve menü çubuğu
 
@@ -103,4 +113,5 @@ xvfb-run -a node tools/smoke.js  # Linux'ta gerçek Electron ile uçtan uca duma
 | `src/main/katalog.js` | Kaynak alanları ve hazır şablonlar (yeni uygulama şablonu buraya eklenir) |
 | `src/main/store.js` | Ayarlar, şifreli anahtarlar, önbellek |
 | `src/main/main.js` | Menü çubuğu simgesi, pencere, yenileme |
+| `src/main/centik.js`, `src/main/medya.js` | Çentik adası; Spotify ve YouTube |
 | `src/renderer/` | Panel arayüzü |
