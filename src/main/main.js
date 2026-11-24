@@ -38,14 +38,25 @@ function centikVerisi() {
 const ORNEK_MEDYA = { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı", alt: "Örnek Sanatçı", kapak: null };
 
 async function medyaYenile() {
-  if (!kayit.ayar().genel.medya) return;
-  sonMedya = await calan.durum();
-  if (centik) centik.gonder(centikVerisi());
+  const g = kayit.ayar().genel;
+  sonMedya = g.medya && g.centik ? await calan.durum() : null;
+  if (centik) centik.guncelle();
+}
+
+// Çalan içerik: ada açıkken sık, kapalıyken seyrek sorulur (küçük ada bunun sayesinde belirir ve kaybolur).
+function medyaDongu() {
+  clearInterval(medyaSayac);
+  medyaSayac = null;
+  const g = kayit.ayar().genel;
+  if (!g.medya || !g.centik) { sonMedya = null; return; }
+  medyaSayac = setInterval(medyaYenile, centik && centik.acik() ? 1500 : 4000);
+  medyaYenile();
 }
 
 function centikAyarla() {
   if (!centik) return;
   if (kayit.ayar().genel.centik) centik.baslat(); else centik.durdur();
+  medyaDongu();
 }
 
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -116,7 +127,7 @@ function tepsiKur() {
 
 function yayinla() {
   if (pencere && !pencere.isDestroyed()) pencere.webContents.send("durum", durum);
-  if (centik) centik.gonder(centikVerisi());
+  if (centik) centik.guncelle();
   if (tepsi && MAC) {
     // Simgenin yanındaki sayı: Ayarlar > Menü çubuğunda gösterilen sayı.
     const hangi = kayit.ayar().genel.cubukSayi;
@@ -217,8 +228,8 @@ app.whenReady().then(() => {
   // Çentik açıkken çalan içerik saniyede bir sorulur; kapalıyken hiç sorulmaz.
   centik = centikKur({
     veriAl: centikVerisi,
-    acildi: () => { medyaYenile(); clearInterval(medyaSayac); medyaSayac = setInterval(medyaYenile, 1500); },
-    kapandi: () => { clearInterval(medyaSayac); medyaSayac = null; },
+    acildi: medyaDongu,
+    kapandi: medyaDongu,
   });
   centikAyarla();
   globalShortcut.register("Alt+Command+A", ac_kapa);

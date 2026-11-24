@@ -20,10 +20,19 @@ const SPOTIFY_SOR = `tell application "Spotify"
   return d & a & (name of current track) & a & (artist of current track) & a & (artwork url of current track)
 end tell`;
 
+// Videonun oynayıp oynamadığı ancak tarayıcı "Apple Events'ten JavaScript'e izin ver" açıksa öğrenilir;
+// kapalıysa durum boş döner ve video "bilinmiyor" sayılır.
+const DURUM_JS = "(function(){var v=document.querySelector('video');return v?(v.paused?'durdu':'oynuyor'):'yok'})()";
 const kromSor = (ad) => `tell application "${ad}"
   repeat with w in windows
     repeat with t in tabs of w
-      if URL of t contains "youtube.com/watch" then return (title of t) & (character id 31) & (URL of t)
+      if URL of t contains "youtube.com/watch" then
+        set d to ""
+        try
+          set d to (execute t javascript "${DURUM_JS}") as string
+        end try
+        return (title of t) & (character id 31) & (URL of t) & (character id 31) & d
+      end if
     end repeat
   end repeat
   return ""
@@ -32,7 +41,13 @@ end tell`;
 const SAFARI_SOR = `tell application "Safari"
   repeat with w in windows
     repeat with t in tabs of w
-      if URL of t contains "youtube.com/watch" then return (name of t) & (character id 31) & (URL of t)
+      if URL of t contains "youtube.com/watch" then
+        set d to ""
+        try
+          set d to (do JavaScript "${DURUM_JS}" in t) as string
+        end try
+        return (name of t) & (character id 31) & (URL of t) & (character id 31) & d
+      end if
     end repeat
   end repeat
   return ""
@@ -64,11 +79,11 @@ function spotifyCoz(cikti) {
 
 function youtubeCoz(cikti, tarayici) {
   if (!cikti) return null;
-  const [baslik, adres] = cikti.split(AYRAC);
+  const [baslik, adres, hal] = cikti.split(AYRAC);
   const kimlik = (/[?&]v=([\w-]{6,20})/.exec(adres || "") || [])[1];
   if (!baslik || !kimlik) return null;
   return {
-    kaynak: "youtube", tarayici, oynuyor: null, alt: `YouTube · ${tarayici}`,
+    kaynak: "youtube", tarayici, oynuyor: hal === "oynuyor" ? true : hal === "durdu" ? false : null, alt: `YouTube · ${tarayici}`,
     baslik: baslik.replace(/^\(\d+\)\s*/, "").replace(/\s*-\s*YouTube$/, ""),
     kapak: `https://i.ytimg.com/vi/${kimlik}/mqdefault.jpg`,
   };

@@ -6,6 +6,7 @@ if (!window.appati) document.body.classList.add("onizleme");
 
 const SVGNS = "http://www.w3.org/2000/svg";
 const ada = document.getElementById("ada");
+const kucuk = document.getElementById("kucuk");
 let ipucu = null; // { metin, bitis }
 
 function h(etiket, ozellik, ...cocuklar) {
@@ -52,7 +53,7 @@ function medyaParcasi(v) {
   const uyari = ipucu && ipucu.bitis > Date.now() ? ipucu.metin : null;
   const tuslar = m.kaynak === "spotify"
     ? [tus("onceki", "Önceki", "onceki"), tus(m.oynuyor ? "durdur" : "oynat", m.oynuyor ? "Duraklat" : "Oynat", "oynat"), tus("sonraki", "Sonraki", "sonraki")]
-    : [tus("ikisi", "Oynat / duraklat", "oynat")];
+    : [m.oynuyor === null ? tus("ikisi", "Oynat / duraklat", "oynat") : tus(m.oynuyor ? "durdur" : "oynat", m.oynuyor ? "Duraklat" : "Oynat", "oynat")];
   return h("div", { class: "medya" }, kapak,
     h("div", { class: "parca" }, h("b", { title: m.baslik }, m.baslik), h("span", { class: uyari ? "ipucu" : null }, uyari || m.alt)),
     h("div", { class: "tuslar" }, tuslar));
@@ -65,12 +66,28 @@ function ciz(v) {
     v.rakamlar && v.rakamlar.length
       ? v.rakamlar.map((r) => h("div", { class: "rakam" }, h("b", null, r.deger), h("span", null, r.etiket)))
       : h("div", { class: "rakam bos" }, "Veri okunuyor…"));
-  ada.replaceChildren(v.demo ? h("div", { class: "ornek" }, "örnek veri") : null, rakamlar, v.medyaAcik ? h("div", { class: "ayrac" }) : null, v.medyaAcik ? medyaParcasi(v) : null);
+  // replaceChildren boş değerleri "null" yazısına çevirir; önce ayıkla.
+  ada.replaceChildren(...[v.demo ? h("div", { class: "ornek" }, "örnek veri") : null, rakamlar, v.medyaAcik ? h("div", { class: "ayrac" }) : null, v.medyaAcik ? medyaParcasi(v) : null].filter(Boolean));
+}
+
+// Küçük ada: çalarken çentiğin solunda kapak, sağında hareketli ses çubukları. Kapak aynıysa yeniden çizilmez
+// (çubukların canlandırması her güncellemede baştan başlamasın).
+let kucukImza = null;
+function kucukCiz(v) {
+  document.documentElement.style.setProperty("--kb", `${v.kb || 32}px`);
+  const imza = v.kucuk ? `${v.kucuk.kaynak}|${v.kucuk.kapak}` : null;
+  if (imza === kucukImza) return;
+  kucukImza = imza;
+  kucuk.hidden = !v.kucuk;
+  if (!v.kucuk) { kucuk.replaceChildren(); return; }
+  const kapak = v.kucuk.kapak ? h("img", { class: "mini-kapak", src: v.kucuk.kapak, alt: "" }) : h("div", { class: "mini-kapak" }, ikon("nota"));
+  kucuk.replaceChildren(kapak, h("div", { class: "dalga", role: "img", "aria-label": "Çalıyor" }, [0, 1, 2, 3, 4].map(() => h("i"))));
 }
 
 kopru.centikDinle((v) => {
+  kucukCiz(v);
   if (v.acik) { ciz(v); requestAnimationFrame(() => ada.classList.add("acik")); } else ada.classList.remove("acik");
 });
 
 // Tarayıcı önizlemesi (tools/preview.js)
-if (window.__CENTIK__) { ciz(window.__CENTIK__); ada.classList.add("acik"); }
+if (window.__CENTIK__) { kucukCiz(window.__CENTIK__); if (window.__CENTIK__.acik) { ciz(window.__CENTIK__); ada.classList.add("acik"); } }

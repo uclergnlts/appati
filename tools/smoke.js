@@ -16,7 +16,15 @@ const assert = require("node:assert");
     env: { ...process.env, APPATI_TEST: "1" },
   });
   const hatalar = [];
-  const p = await uyg.firstWindow();
+  // İki pencere var (panel ve çentik); sıraları değişebildiği için paneli adresinden bul.
+  await uyg.firstWindow();
+  let p = null;
+  for (let i = 0; i < 50 && !p; i++) {
+    p = uyg.windows().find((w) => w.url().endsWith("index.html")) || null;
+    if (!p) await new Promise((r) => setTimeout(r, 100));
+  }
+  assert.ok(p, "panel penceresi bulundu");
+  assert.ok(uyg.windows().some((w) => w.url().endsWith("centik.html")), "çentik penceresi kuruldu");
   p.on("pageerror", (e) => hatalar.push(e.message));
   p.on("console", (m) => { if (m.type() === "error") hatalar.push(m.text()); });
 

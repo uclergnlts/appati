@@ -5,7 +5,7 @@ const Module = require("node:module");
 // centik.js Electron'u yükler; saf karar işlevini sınamak için sahtesiyle değiştir.
 const asil = Module._load;
 Module._load = (ad, ...kalan) => (ad === "electron" ? { BrowserWindow: class {}, screen: {} } : asil(ad, ...kalan));
-const { adim, EN, BOY } = require("../src/main/centik");
+const { adim, kucukBoy, EN, BOY, KUCUK_EN } = require("../src/main/centik");
 const { medya, spotifyCoz, youtubeCoz } = require("../src/main/medya");
 Module._load = asil;
 
@@ -40,6 +40,13 @@ test("çentik: kenardan geçen ya da menüye giden fare açmaz", () => {
   assert.equal(adim({ acik: false, girme: 1, cikma: 0 }, { x: -960, y: 1 }, sol, pencere).eylem, "ac");
 });
 
+test("çentik: küçük ada görünürken adanın tamamı tetikler; yüksekliği menü çubuğuna uyar", () => {
+  const kulak = { x: 756 + 140, y: 20 }; // çentiğin sağındaki kulak, üst şeridin altında
+  assert.equal(adim({ acik: false, girme: 1, cikma: 0 }, kulak, ekran, pencere).acik, false);
+  assert.equal(adim({ acik: false, girme: 1, cikma: 0 }, kulak, ekran, pencere, { en: KUCUK_EN, boy: 38 }).eylem, "ac");
+  assert.deepEqual([kucukBoy(38), kucukBoy(24.5), kucukBoy(0), kucukBoy(90)], [38, 25, 24, 40]);
+});
+
 test("medya: Spotify ve YouTube çıktıları çözülür", () => {
   assert.deepEqual(spotifyCoz("playing\u001fŞarkı\u001fSanatçı\u001fhttps://i.scdn.co/image/abc"),
     { kaynak: "spotify", oynuyor: true, baslik: "Şarkı", alt: "Sanatçı", kapak: "https://i.scdn.co/image/abc" });
@@ -47,6 +54,9 @@ test("medya: Spotify ve YouTube çıktıları çözülür", () => {
   assert.equal(spotifyCoz("stopped"), null);
   const y = youtubeCoz("(3) Mol kavramı - YouTube\u001fhttps://www.youtube.com/watch?v=dQw4w9WgXcQ&t=12", "Safari");
   assert.deepEqual([y.baslik, y.kapak, y.alt], ["Mol kavramı", "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg", "YouTube · Safari"]);
+  assert.equal(y.oynuyor, null);
+  assert.equal(youtubeCoz("V - YouTube\u001fhttps://www.youtube.com/watch?v=abcdefghijk\u001foynuyor", "Arc").oynuyor, true);
+  assert.equal(youtubeCoz("V - YouTube\u001fhttps://www.youtube.com/watch?v=abcdefghijk\u001fdurdu", "Arc").oynuyor, false);
   assert.equal(youtubeCoz("", "Safari"), null);
 });
 

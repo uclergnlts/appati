@@ -45,6 +45,8 @@ npm run dist       # dist/ altına .dmg ve .zip üret (Mac'te)
 
 Fare ekranın üst ortasına (MacBook çentiğine) gelince çentikten aşağı küçük bir özet açılır: bugünün rakamları ve çalan şarkı ya da video. Rakamlara tıklayınca tam panel sağda açılır; fare uzaklaşınca özet kapanır. Çentiksiz ekranda aynı yerde çalışır. **Ayarlar > Çentik** altından kapatılır.
 
+Bir şey çalarken ada kapalıyken de çentiğin iki yanında küçük bir gösterge kalır: solda albüm kapağı, sağda hareketli ses çubukları. Duraklatınca kaybolur. (Çubuklar süslemedir; gerçek ses düzeyini ölçmez.)
+
 - **Spotify:** çalan şarkı, kapak, önceki / oynat-duraklat / sonraki. Spotify masaüstü uygulaması açık olmalı.
 - **YouTube:** Chrome, Safari, Brave, Edge ya da Arc'ta açık videonun adı ve oynat/duraklat. Oynat/duraklat için tarayıcıda "Apple Events'ten JavaScript'e İzin Ver" açık olmalı (Chrome: Görünüm > Geliştirici; Safari: Geliştir menüsü).
 - Anahtar gerekmez. macOS ilk kullanımda "Appati, Spotify'ı denetlemek istiyor" diye izin sorar. Çalan içerik yalnızca özet açıkken sorulur.
