@@ -1,5 +1,5 @@
 // Appati: menü çubuğunda duran, ekranın sağ kenarında açılan panel.
-const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, net, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { depo } = require("./store");
@@ -182,7 +182,9 @@ async function yenile() {
         await new Promise((r) => setTimeout(r, 400));
       }
       const gizliler = kayit.gizliler();
-      const ctx = { istek: istekci(fetch), simdi, onbellek: kayit.onbellek };
+      // İstekler Chromium'un ağ katmanından gider (net.fetch): sistemin vekil sunucu ayarına ve IPv4/IPv6 seçimine uyar.
+      // Node'un kendi fetch'i bozuk IPv6'lı ağlarda bazı sunuculara bağlanırken zaman aşımına düşüyordu.
+      const ctx = { istek: istekci((adres, secenek) => net.fetch(adres, secenek)), simdi, onbellek: kayit.onbellek };
       uygulamalar = await Promise.all(tanimlar.map((u) => uygulamayiTopla(u, gizliler[u.id], ctx)));
       // İnternet yoksa (uyku sonrası, Wi-Fi kopuk) eldeki son rakamlar silinmesin.
       const kaynaklar = uygulamalar.flatMap((u) => u.kaynaklar);

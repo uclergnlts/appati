@@ -78,6 +78,15 @@ test("supabase: reddedilen anahtar anlaşılır hata verir", async () => {
   await assert.rejects(supabase({ url: "https://x.supabase.co" }, { key: "k" }, ctx), /Anahtar reddedildi/);
 });
 
+test("istek: bağlantı hatasında bir kez yeniden dener, sonra anlaşılır hata verir", async () => {
+  let n = 0;
+  const birKezDusen = istekci(async () => { if (n++ === 0) throw Object.assign(new TypeError("fetch failed"), { cause: { code: "UND_ERR_CONNECT_TIMEOUT" } }); return json({ ok: 1 }); }, 1000, 1);
+  assert.deepEqual(await birKezDusen("https://x"), { ok: 1 });
+  assert.equal(n, 2);
+  const hepDusen = istekci(async () => { throw Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } }); }, 1000, 1);
+  await assert.rejects(hepDusen("https://x"), /Bağlanılamadı \(ENOTFOUND\)/);
+});
+
 test("umami: eski ve yeni özet biçimi, kaynaklar, seri", async () => {
   const bugun = gunAnahtari(simdi);
   let ozetSira = 0;

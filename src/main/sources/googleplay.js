@@ -18,7 +18,7 @@ module.exports = async function googleplay(ayar, gizli, { istek, simdi }) {
   const jeton = await istek("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: onay }),
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: onay }).toString(),
   });
 
   let r;

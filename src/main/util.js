@@ -37,13 +37,18 @@ class KaynakHatasi extends Error {
 }
 
 // fetch sarmalayıcı: zaman aşımı, anlaşılır hata. tur: "json" | "metin" | "tampon" | "yanit"
-function istekci(fetchFn, zamanAsimi = 20000) {
+function istekci(fetchFn, zamanAsimi = 20000, tekrarBekleme = 800) {
   return async function istek(url, secenek = {}, tur = "json") {
     let yanit;
-    try {
-      yanit = await fetchFn(url, { ...secenek, signal: AbortSignal.timeout(zamanAsimi) });
-    } catch (e) {
-      throw new KaynakHatasi(e.name === "TimeoutError" ? "Zaman aşımı" : `Bağlanılamadı (${e.cause?.code || e.message})`);
+    // Bağlantı kurulamazsa bir kez daha denenir (anlık kopukluk, uyku sonrası).
+    for (let deneme = 0; ; deneme++) {
+      try {
+        yanit = await fetchFn(url, { ...secenek, signal: AbortSignal.timeout(zamanAsimi) });
+        break;
+      } catch (e) {
+        if (deneme === 0) { await new Promise((r) => setTimeout(r, tekrarBekleme)); continue; }
+        throw new KaynakHatasi(e.name === "TimeoutError" ? "Zaman aşımı" : `Bağlanılamadı (${e.cause?.code || e.message})`);
+      }
     }
     if (tur === "yanit") return yanit;
     if (!yanit.ok) {
