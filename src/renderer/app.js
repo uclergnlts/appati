@@ -8,7 +8,7 @@ const kopru = window.appati || {
   uygulamaKaydet: async () => window.__ONIZLEME__,
   uygulamaSil: async () => window.__ONIZLEME__,
   genelKaydet: async () => window.__ONIZLEME__,
-  gizle() {}, cik() {}, disari() {}, durumDinle() {}, vurguDinle() {}, gitDinle() {},
+  gizle() {}, cik() {}, disari() {}, durumDinle() {}, vurguDinle() {}, gitDinle() {}, ayarDinle() {},
 };
 if (!window.appati) document.body.classList.add("onizleme");
 
@@ -398,6 +398,8 @@ function ayarGorunumu() {
           h("label", { class: "onay" }, bildirim, "Bildirim gönder (düşük puanlı yorum, yeni abone, okunamayan kaynak)"),
           h("label", { class: "alan" }, h("span", null, "Menü çubuğunda simgenin yanındaki sayı"), cubuk),
           h("div", { class: "kucuk-yazi" }, "Kısayol: ⌥⌘A paneli açar ve kapatır."))),
+      P.gunluk ? h("section", { class: "bolum" }, h("h2", null, "Sorun giderme"),
+        h("div", { class: "kart kucuk-yazi", style: "margin-top:0" }, "Bir şey çalışmazsa hata kaydı şu dosyadadır: ", P.gunluk)) : null,
       h("section", { class: "bolum" }, h("h2", null, "Gizlilik"),
         h("div", { class: "kart kucuk-yazi", style: "margin-top:0" }, "Anahtarların macOS Anahtar Zinciri ile şifrelenip yalnızca bu Mac'te saklanır. Appati'nin sunucusu yoktur; veriler doğrudan senin hesaplarından okunur.")),
       h("div", { class: "eylem" }, h("button", { class: "btn tehlike", onclick: () => kopru.cik() }, "Appati'den çık"))),
@@ -508,6 +510,8 @@ kopru.durumDinle((d) => {
   if (G.ad !== "form" && G.ad !== "ayar") ciz();
 });
 
+// Ayarlar ekranı açıkken üzerine yazma; kullanıcının yaptığı değişiklik kaybolmasın.
+kopru.ayarDinle((a) => { if (P && G.ad !== "form" && G.ad !== "ayar") P.ayar = a; });
 kopru.gitDinle((g) => { if (P) git(g); });
 kopru.vurguDinle((r) => { if (P) { P.vurgu = r; gorunumUygula(P.ayar.genel); } });
 

@@ -1,6 +1,7 @@
 // Appati: menü çubuğunda duran, ekranın sağ kenarında açılan panel.
-const { app, BrowserWindow, Notification, Tray, powerMonitor, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
 const path = require("node:path");
+const fs = require("node:fs");
 const { depo } = require("./store");
 const { KAYNAKLAR, SABLONLAR } = require("./katalog");
 const { uygulamayiTopla, ozetle } = require("./collect");
@@ -73,6 +74,14 @@ function centikAyarla() {
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
+// Sessiz kalan hatalar hata.log dosyasına yazılır (Ayarlar > Sorun giderme'de yolu görünür).
+const gunlukYolu = () => path.join(app.getPath("userData"), "hata.log");
+function gunluk(ne, hata) {
+  try { fs.appendFileSync(gunlukYolu(), `${new Date().toISOString()} ${ne}: ${(hata && hata.stack) || hata}\n`); } catch {}
+}
+process.on("unhandledRejection", (h) => gunluk("yakalanmamış söz", h));
+process.on("uncaughtException", (h) => { gunluk("yakalanmamış hata", h); dialog.showErrorBox("Appati bir hatayla karşılaştı", String((h && h.message) || h)); });
+
 function yerlestir() {
   const imlec = screen.getCursorScreenPoint();
   const alan = screen.getDisplayNearestPoint(imlec).workArea;
@@ -138,7 +147,10 @@ function tepsiKur() {
 }
 
 function yayinla() {
-  if (pencere && !pencere.isDestroyed()) pencere.webContents.send("durum", durum);
+  if (pencere && !pencere.isDestroyed()) {
+    pencere.webContents.send("durum", durum);
+    pencere.webContents.send("ayar", kayit.guvenliAyar());
+  }
   if (centik) centik.guncelle();
   if (tepsi && MAC) {
     // Simgenin yanındaki sayı: Ayarlar > Menü çubuğunda gösterilen sayı.
@@ -161,6 +173,14 @@ async function yenile() {
     if (demo) {
       uygulamalar = demoUygulamalar(simdi);
     } else {
+      // Anahtarların ilk okunuşunda macOS Anahtar Zinciri izin sorabilir ve cevaplanana kadar uygulama bekler.
+      // Önce paneli ve açıklamayı göster, uygulamayı öne al ki izin penceresi arkada kalmasın.
+      if (kayit.cozmeBekliyor()) {
+        durum = { ...durum, yukleniyor: true, hata: "macOS Anahtar Zinciri izni isteyebilir. Şifre penceresi çıkarsa Mac şifreni girip “Her Zaman İzin Ver” de." };
+        yayinla();
+        if (MAC) app.focus({ steal: true });
+        await new Promise((r) => setTimeout(r, 400));
+      }
       const gizliler = kayit.gizliler();
       const ctx = { istek: istekci(fetch), simdi, onbellek: kayit.onbellek };
       uygulamalar = await Promise.all(tanimlar.map((u) => uygulamayiTopla(u, gizliler[u.id], ctx)));
@@ -183,7 +203,9 @@ async function yenile() {
       }
     }
     durum = { uygulamalar, ozet: ozetle(uygulamalar), zaman: simdi.toISOString(), demo, yukleniyor: false };
+    if (!demo && kayit.kilitli()) durum.hata = "Anahtar Zinciri izni verilmediği için kayıtlı anahtarlar okunamadı. Yenile düğmesine basıp izin ver.";
   })().catch((e) => {
+    gunluk("yenileme", e);
     durum = { ...durum, yukleniyor: false, hata: `Yenileme başarısız: ${e.message}` };
   }).finally(() => {
     suren = null;
@@ -198,9 +220,9 @@ function zamanla() {
 }
 
 function ipcKur() {
-  const paket = () => ({ durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion(), vurgu: vurguRengi() });
+  const paket = () => ({ gunluk: gunlukYolu(), durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion(), vurgu: vurguRengi() });
   ipcMain.handle("baslangic", paket);
-  ipcMain.handle("yenile", async () => { await yenile(); return paket(); });
+  ipcMain.handle("yenile", async () => { kayit.kilidiSifirla(); await yenile(); return paket(); });
   ipcMain.handle("uygulama:kaydet", async (_o, gelen) => { kayit.uygulamaKaydet(gelen); yenile(); return paket(); });
   ipcMain.handle("uygulama:sil", async (_o, id) => { kayit.uygulamaSil(String(id)); yenile(); return paket(); });
   ipcMain.handle("genel:kaydet", async (_o, yeni) => {
@@ -232,6 +254,7 @@ function ipcKur() {
 }
 
 app.whenReady().then(() => {
+  try {
   if (MAC && app.dock) app.dock.hide();
   // Yalnızca Linux'taki duman testi için: anahtar halkası olmayan makinede Chromium'un temel şifrelemesine izin ver.
   if (process.platform === "linux" && process.env.APPATI_TEST === "1") safeStorage.setUsePlainTextEncryption(true);
@@ -251,11 +274,19 @@ app.whenReady().then(() => {
   });
   centikAyarla();
   globalShortcut.register("Alt+Command+A", ac_kapa);
-  pencere.once("ready-to-show", goster);
-  yenile();
+  // İlk okuma panel göründükten sonra başlar; Anahtar Zinciri izni beklenirken ekran boş kalmasın.
+  let ilkOkuma = false;
+  const basla = () => { if (ilkOkuma) return; ilkOkuma = true; goster(); setTimeout(yenile, 300); };
+  pencere.once("ready-to-show", basla);
+  setTimeout(basla, 4000); // pencere olayı gelmezse yine de başla
   zamanla();
   // Uykudan uyanınca ağın gelmesini kısa süre bekleyip yenile.
   powerMonitor.on("resume", () => setTimeout(yenile, 8000));
+  } catch (h) {
+    // then() içindeki hata sessizce yutulur; görünür kıl.
+    gunluk("açılış", h);
+    dialog.showErrorBox("Appati açılamadı", String((h && h.stack) || h));
+  }
 });
 
 app.on("second-instance", () => pencere && goster());

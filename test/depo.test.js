@@ -44,6 +44,50 @@ test("kaydet, gizle, güncelle, sil", () => {
   assert.equal(d2.gizliler()[id], undefined);
 });
 
+test("Anahtar Zinciri izni reddedilince kayıtlı anahtarlar silinmez; arayüz açılışı çözme yapmaz", () => {
+  const klasor = fs.mkdtempSync(path.join(os.tmpdir(), "appati-"));
+  const id = depo(klasor, kasa).uygulamaKaydet({ ad: "ucler.", kaynaklar: { umami: { websiteId: "w" } }, gizli: { umami: { apiKey: "ilk-anahtar" } } });
+  const ilkDosya = fs.readFileSync(path.join(klasor, "gizli.bin"));
+
+  // Yeni sürüm açıldı, kullanıcı izni reddetti: çözme hata verir.
+  let cozme = 0, reddet = true;
+  const d = depo(klasor, { ...kasa, decryptString: (b) => { cozme++; if (reddet) throw new Error("reddedildi"); return kasa.decryptString(b); } });
+  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.umami.apiKey, true); // dizinden; çözme yok
+  assert.equal(cozme, 0);
+  assert.equal(d.cozmeBekliyor(), true);
+  assert.deepEqual(d.gizliler(), {});
+  assert.deepEqual([d.kilitli(), cozme], [true, 1]);
+  d.gizliler(); // kilitliyken yeniden sorulmaz
+  assert.equal(cozme, 1);
+  // Kilitliyken yeni anahtar yazmak ya da silmek reddedilir; dosya aynen kalır.
+  assert.throws(() => d.uygulamaKaydet({ id, ad: "ucler.", gizli: { supabase: { key: "yeni" } } }), /Anahtar Zinciri izni/);
+  assert.throws(() => d.uygulamaSil(id), /Anahtar Zinciri izni/);
+  assert.equal(d.ayar().uygulamalar.length, 1);
+  assert.deepEqual(fs.readFileSync(path.join(klasor, "gizli.bin")), ilkDosya);
+  // Gizli alan içermeyen kayıt (ad değişikliği) kilitliyken de yapılabilir.
+  d.uygulamaKaydet({ id, ad: "ucler 2", kaynaklar: { umami: { websiteId: "w" } }, gizli: { umami: { apiKey: "" } } });
+  assert.equal(d.ayar().uygulamalar[0].ad, "ucler 2");
+  // Kullanıcı yenileyip izin verdi: anahtarlar yerinde, sonraki okumalar bellekte.
+  reddet = false; d.kilidiSifirla();
+  assert.equal(d.gizliler()[id].umami.apiKey, "ilk-anahtar");
+  d.gizliler(); d.gizliler();
+  assert.equal(cozme, 2);
+  d.uygulamaKaydet({ id, ad: "ucler 2", gizli: { supabase: { key: "yeni" } } });
+  assert.deepEqual(Object.keys(depo(klasor, kasa).gizliler()[id]).sort(), ["supabase", "umami"]);
+});
+
+test("eski sürümden kalan ayar: dizin ilk çözmede kurulur", () => {
+  const klasor = fs.mkdtempSync(path.join(os.tmpdir(), "appati-"));
+  const id = depo(klasor, kasa).uygulamaKaydet({ ad: "x", gizli: { umami: { apiKey: "k" } } });
+  const dosya = path.join(klasor, "ayar.json");
+  const eski = JSON.parse(fs.readFileSync(dosya, "utf8")); delete eski.gizliVar; fs.writeFileSync(dosya, JSON.stringify(eski));
+  const d = depo(klasor, kasa);
+  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.umami.apiKey, false);
+  d.gizliler();
+  assert.equal(d.guvenliAyar().uygulamalar[0].gizliVar.umami.apiKey, true);
+  assert.equal(JSON.parse(fs.readFileSync(dosya, "utf8")).gizliVar[id].umami.apiKey, true);
+});
+
 test("şifreleme yoksa gizli anahtar yazılmaz", () => {
   const klasor = fs.mkdtempSync(path.join(os.tmpdir(), "appati-"));
   const d = depo(klasor, { ...kasa, isEncryptionAvailable: () => false });

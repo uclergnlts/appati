@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("appati", {
   gizle: () => ipcRenderer.invoke("gizle"),
   cik: () => ipcRenderer.invoke("cik"),
   disari: (adres) => ipcRenderer.invoke("disari", adres),
+  ayarDinle: (fn) => ipcRenderer.on("ayar", (_o, a) => fn(a)),
   durumDinle: (fn) => ipcRenderer.on("durum", (_o, d) => fn(d)),
   centikDinle: (fn) => ipcRenderer.on("centik", (_o, v) => fn(v)),
   paneliAc: () => ipcRenderer.invoke("panel:ac"),

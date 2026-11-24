@@ -91,7 +91,8 @@ Günün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}
 
 - Anahtarlar macOS Anahtar Zinciri'ne bağlı şifrelemeyle (`safeStorage`) yalnızca bu Mac'te saklanır; arayüze bir daha geri gönderilmez.
 - Appati'nin sunucusu yoktur. Veriler doğrudan senin hesaplarından okunur.
-- Uygulama imzası değiştiğinde (yeni sürüm kurunca) macOS Anahtar Zinciri erişimi için bir kez izin isteyebilir.
+- Yeni sürüm kurunca macOS, kayıtlı anahtarları okumak için Mac şifreni sorabilir (uygulama Developer ID ile imzalı olmadığından her sürümde bir kez). "Her Zaman İzin Ver" de. Pencere cevaplanana kadar panel bekler; reddedersen anahtarlar silinmez, Yenile'ye basınca yeniden sorulur.
+- Sessiz hatalar `~/Library/Application Support/Appati/hata.log` dosyasına yazılır (yol Ayarlar > Sorun giderme'de görünür).
 
 ## Bilinen sınırlar
 

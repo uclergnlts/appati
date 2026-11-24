@@ -22,34 +22,72 @@ function yaz(dosya, veri) {
 
 function depo(klasor, safeStorage) {
   const yol = (ad) => path.join(klasor, ad);
-  let ayar = { ...VARSAYILAN, ...oku(yol("ayar.json"), {}) };
+  let ayar = { ...structuredClone(VARSAYILAN), ...oku(yol("ayar.json"), {}) }; // kopya: varsayılan liste depolar arasında paylaşılmasın
   ayar.genel = { ...VARSAYILAN.genel, ...(ayar.genel || {}) };
   let onbellek = oku(yol("onbellek.json"), {});
   let onbellekKirli = false;
 
+  // Gizli anahtarlar bir kez çözülür ve bellekte tutulur; her çözme macOS Anahtar Zinciri'ne gider ve
+  // izin penceresi açıkken uygulamayı bekletir. Çözülemezse (izin reddedildi) "kilitli" sayılır:
+  // o durumda dosyanın üzerine asla yazılmaz, yoksa kayıtlı bütün anahtarlar silinirdi.
+  let gizliBellek;
+  let kilitli = false;
+  const gizliDosyaVar = () => fs.existsSync(yol("gizli.bin"));
+
   function gizlileriOku() {
+    if (gizliBellek) return gizliBellek;
+    if (!gizliDosyaVar()) { gizliBellek = {}; return gizliBellek; }
+    if (kilitli) return null;
     try {
-      const ham = fs.readFileSync(yol("gizli.bin"));
-      return JSON.parse(safeStorage.decryptString(ham));
-    } catch { return {}; }
+      gizliBellek = JSON.parse(safeStorage.decryptString(fs.readFileSync(yol("gizli.bin"))));
+      dizinYaz(gizliBellek);
+      return gizliBellek;
+    } catch {
+      kilitli = true;
+      return null;
+    }
+  }
+  function yazilabilir() {
+    const g = gizlileriOku();
+    if (!g) throw new Error("Anahtar Zinciri izni verilmediği için kayıtlı anahtarlar okunamadı. Paneli yenileyip izin ver, sonra tekrar dene.");
+    return g;
   }
   function gizlileriYaz(g) {
     if (!safeStorage.isEncryptionAvailable()) throw new Error("Anahtar Zinciri kullanılamıyor; gizli anahtar kaydedilmedi.");
     yaz(yol("gizli.bin"), safeStorage.encryptString(JSON.stringify(g)));
+    gizliBellek = g;
+    dizinYaz(g);
+  }
+  // Hangi gizli alanların dolu olduğunun (değerlerin değil) dizini ayar.json'da durur;
+  // böylece arayüz açılırken Anahtar Zinciri'ne gitmek gerekmez.
+  function dizinYaz(g) {
+    const dizin = {};
+    for (const [id, kaynaklar] of Object.entries(g)) {
+      dizin[id] = Object.fromEntries(Object.entries(kaynaklar).map(([tur, alanlar]) => [tur, Object.fromEntries(Object.keys(alanlar).filter((a) => alanlar[a]).map((a) => [a, true]))]));
+    }
+    if (JSON.stringify(ayar.gizliVar || {}) === JSON.stringify(dizin)) return;
+    ayar.gizliVar = dizin;
+    yaz(yol("ayar.json"), JSON.stringify(ayar, null, 2));
   }
 
   return {
     ayar: () => ayar,
-    gizliler: gizlileriOku,
+    // Çözülmüş anahtarlar; kilitliyse boş döner (kaynaklar "anahtar eksik" diye atlanır).
+    gizliler: () => gizlileriOku() || {},
+    kilitli: () => kilitli,
+    // İlk çözme henüz yapılmadı mı? (yapılınca macOS izin sorabilir)
+    cozmeBekliyor: () => !gizliBellek && !kilitli && gizliDosyaVar(),
+    // Kullanıcı elle yenileyince izin yeniden denenir.
+    kilidiSifirla() { kilitli = false; },
 
-    // Arayüze giden hâl: gizli alanların değeri değil, yalnızca girilip girilmediği.
+    // Arayüze giden hâl: gizli alanların değeri değil, yalnızca girilip girilmediği. Anahtar Zinciri'ne gitmez.
     guvenliAyar() {
-      const g = gizlileriOku();
+      const dizin = ayar.gizliVar || {};
       return {
         genel: ayar.genel,
         uygulamalar: ayar.uygulamalar.map((u) => ({
           ...u,
-          gizliVar: Object.fromEntries(KAYNAKLAR.map((k) => [k.tur, Object.fromEntries(gizliAlanlar(k.tur).map((a) => [a, Boolean(g[u.id]?.[k.tur]?.[a])]))])),
+          gizliVar: Object.fromEntries(KAYNAKLAR.map((k) => [k.tur, Object.fromEntries(gizliAlanlar(k.tur).map((a) => [a, Boolean(dizin[u.id]?.[k.tur]?.[a])]))])),
         })),
       };
     },
@@ -67,7 +105,9 @@ function depo(klasor, safeStorage) {
         }
         kaynaklar[k.tur] = acik;
       }
-      const g = gizlileriOku();
+      // Gizli alan gönderilmediyse Anahtar Zinciri'ne hiç gidilmez.
+      const gizliGeldi = KAYNAKLAR.some((k) => gizliAlanlar(k.tur).some((a) => { const d = gelen.gizli?.[k.tur]?.[a]; return d === null || (typeof d === "string" && d.trim()); }));
+      const g = gizliGeldi ? structuredClone(yazilabilir()) : {};
       let degisti = false;
       g[id] = g[id] || {};
       for (const k of KAYNAKLAR) {
@@ -86,10 +126,12 @@ function depo(klasor, safeStorage) {
     },
 
     uygulamaSil(id) {
+      if (gizliDosyaVar()) {
+        const g = structuredClone(yazilabilir());
+        if (g[id]) { delete g[id]; gizlileriYaz(g); }
+      }
       ayar.uygulamalar = ayar.uygulamalar.filter((u) => u.id !== id);
       yaz(yol("ayar.json"), JSON.stringify(ayar, null, 2));
-      const g = gizlileriOku();
-      if (g[id]) { delete g[id]; gizlileriYaz(g); }
       for (const a of Object.keys(onbellek)) if (a.includes(id)) delete onbellek[a];
       onbellekKirli = true;
     },
