@@ -1,0 +1,56 @@
+{
+  "name": "appati",
+  "productName": "Appati",
+  "version": "0.1.0",
+  "description": "Bütün uygulamalarının rakamları, Mac'inin kenarında tek panelde.",
+  "main": "src/main/main.js",
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "Üçler",
+  "scripts": {
+    "start": "electron .",
+    "demo": "APPATI_DEMO=1 electron .",
+    "test": "node --test test/*.test.js",
+    "icons": "node tools/icons.js",
+    "preview": "node tools/preview.js",
+    "dist": "electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "app.ucler.appati",
+    "productName": "Appati",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.png",
+      "identity": "-",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "extendInfo": {
+        "LSUIElement": true
+      }
+    }
+  }
+}
