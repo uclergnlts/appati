@@ -146,6 +146,11 @@ test("googleplay: jeton alır, yorumları çevirir", async () => {
   assert.equal(r.yorumlar[0].puan, 4);
   assert.equal(cagrilar[1].secenek.headers.Authorization, "Bearer tok");
   await assert.rejects(googleplay({ packageName: "p" }, { serviceAccount: "{bozuk" }, ctx), /okunamadı/);
+  // Google'ın bilinen retleri ne yapılacağını söyleyen mesaja çevrilir.
+  const ret = (govde, durum = 403) => sahte([[/oauth2/, () => json({ access_token: "t" })], [/reviews/, () => new Response(JSON.stringify({ error: { message: govde } }), { status: durum })]]).ctx;
+  await assert.rejects(googleplay({ packageName: "p" }, { serviceAccount: hesap }, ret("Google Play Android Developer API has not been used in project 1 before or it is disabled.")), /API” kapalı/);
+  await assert.rejects(googleplay({ packageName: "p" }, { serviceAccount: hesap }, ret("The caller does not have permission", 401)), /Kullanıcılar ve izinler.*a@b\.iam/);
+  await assert.rejects(googleplay({ packageName: "p" }, { serviceAccount: hesap }, ret("Package not found", 404)), /bulunamadı/);
 });
 
 test("birleştirme: bozuk kaynak diğerlerini düşürmez, boş kaynak atlanır", async () => {

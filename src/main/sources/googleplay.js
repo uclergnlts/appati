@@ -21,8 +21,22 @@ module.exports = async function googleplay(ayar, gizli, { istek, simdi }) {
     body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: onay }),
   });
 
-  const r = await istek(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(ayar.packageName)}/reviews?maxResults=30`,
-    { headers: { Authorization: `Bearer ${jeton.access_token}` } });
+  let r;
+  try {
+    r = await istek(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(ayar.packageName)}/reviews?maxResults=30`,
+      { headers: { Authorization: `Bearer ${jeton.access_token}` } });
+  } catch (e) {
+    // Google'ın en sık iki reddi: API projede kapalı, ya da hesap Play Console'a eklenmemiş. İkisini de ne yapılacağıyla yaz.
+    const m = String(e.message || "");
+    if (/has not been used in project|is disabled/i.test(m)) {
+      throw new Error(`Google Cloud projesinde (${hesap.project_id || "?"}) “Google Play Android Developer API” kapalı. Google Cloud Console > APIs & Services > Library'de bu API'yi bulup Enable de, birkaç dakika sonra yenile.`);
+    }
+    if (/does not have permission|insufficient permissions|PERMISSION_DENIED/i.test(m)) {
+      throw new Error(`Servis hesabının bu uygulamada yetkisi yok. Play Console > Kullanıcılar ve izinler'de ${hesap.client_email} adresini ekleyip yorumları görüntüleme izni ver; etkinleşmesi biraz sürebilir.`);
+    }
+    if (e.durum === 404) throw new Error(`Play Console'da “${ayar.packageName}” paket adlı bir uygulama bulunamadı (ya da hesap o uygulamayı göremiyor).`);
+    throw e;
+  }
   const yorumlar = (r.reviews || []).map((y) => {
     const k = (y.comments || []).map((c) => c.userComment).find(Boolean) || {};
     return {
