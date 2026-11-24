@@ -1,12 +1,12 @@
 // Appati: menü çubuğunda duran, ekranın sağ kenarında açılan panel.
-const { app, BrowserWindow, Notification, Tray, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Notification, Tray, powerMonitor, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
 const path = require("node:path");
 const { depo } = require("./store");
 const { KAYNAKLAR, SABLONLAR } = require("./katalog");
 const { uygulamayiTopla, ozetle } = require("./collect");
 const { demoUygulamalar } = require("./demo");
 const { istekci } = require("./util");
-const { farkBul } = require("./bildirim");
+const { farkBul, agHatasi } = require("./bildirim");
 const { centikKur } = require("./centik");
 const { medya } = require("./medya");
 
@@ -24,6 +24,7 @@ let centik = null;
 let medyaSayac = null;
 let sonMedya = null;
 const calan = medya();
+const ORNEK_MEDYA = { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı", alt: "Örnek Sanatçı", kapak: null };
 
 // Çentikteki özet: bugünün birkaç rakamı ve çalan şarkı / video.
 function centikVerisi() {
@@ -35,11 +36,22 @@ function centikVerisi() {
   const medyaAcik = kayit.ayar().genel.medya;
   return { rakamlar, demo: durum.demo, medyaAcik, medya: medyaAcik ? (DEMO && !MAC ? ORNEK_MEDYA : sonMedya) : null };
 }
-const ORNEK_MEDYA = { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı", alt: "Örnek Sanatçı", kapak: null };
 
+// Bir sorgu sürerken yenisi başlamaz; yoksa yavaş kalan eski yanıt yenisinin üzerine yazabilir.
+let medyaSoruluyor = false;
 async function medyaYenile() {
-  const g = kayit.ayar().genel;
-  sonMedya = g.medya && g.centik ? await calan.durum() : null;
+  if (medyaSoruluyor) return;
+  medyaSoruluyor = true;
+  try {
+    const g = kayit.ayar().genel;
+    const yeni = g.medya && g.centik ? await calan.durum() : null;
+    const simdiki = kayit.ayar().genel;
+    sonMedya = simdiki.medya && simdiki.centik ? yeni : null; // sorgu sürerken ayar kapatıldıysa sonucu at
+  } catch {
+    sonMedya = null;
+  } finally {
+    medyaSoruluyor = false;
+  }
   if (centik) centik.guncelle();
 }
 
@@ -152,6 +164,12 @@ async function yenile() {
       const gizliler = kayit.gizliler();
       const ctx = { istek: istekci(fetch), simdi, onbellek: kayit.onbellek };
       uygulamalar = await Promise.all(tanimlar.map((u) => uygulamayiTopla(u, gizliler[u.id], ctx)));
+      // İnternet yoksa (uyku sonrası, Wi-Fi kopuk) eldeki son rakamlar silinmesin.
+      const kaynaklar = uygulamalar.flatMap((u) => u.kaynaklar);
+      if (kaynaklar.length && kaynaklar.every((k) => !k.tamam && agHatasi(k.hata)) && durum.zaman && !durum.demo) {
+        durum = { ...durum, yukleniyor: false, hata: "İnternete bağlanılamadı; son okunan rakamlar gösteriliyor." };
+        return;
+      }
       // Önceki okumayla farkı bildir (yeni düşük puanlı yorum, yeni abone, bozulan kaynak).
       const { bildirimler, iz } = farkBul(kayit.onbellek.al("bildirim.iz"), uygulamalar);
       kayit.onbellek.yaz("bildirim.iz", iz);
@@ -166,7 +184,7 @@ async function yenile() {
     }
     durum = { uygulamalar, ozet: ozetle(uygulamalar), zaman: simdi.toISOString(), demo, yukleniyor: false };
   })().catch((e) => {
-    durum = { ...durum, yukleniyor: false, hata: e.message };
+    durum = { ...durum, yukleniyor: false, hata: `Yenileme başarısız: ${e.message}` };
   }).finally(() => {
     suren = null;
     yayinla();
@@ -236,6 +254,8 @@ app.whenReady().then(() => {
   pencere.once("ready-to-show", goster);
   yenile();
   zamanla();
+  // Uykudan uyanınca ağın gelmesini kısa süre bekleyip yenile.
+  powerMonitor.on("resume", () => setTimeout(yenile, 8000));
 });
 
 app.on("second-instance", () => pencere && goster());

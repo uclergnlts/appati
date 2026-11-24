@@ -220,7 +220,7 @@ function genelGorunum() {
       "Şu an örnek sayılar görünüyor. Kendi rakamların için ",
       h("button", { class: "baglanti", onclick: () => git({ ad: "ayar" }) }, "ilk uygulamanı ekle"), ".")));
   }
-  if (d.hata) govde.append(notSeridi({ tur: "kotu", metin: `Yenileme başarısız: ${d.hata}` }));
+  if (d.hata) govde.append(notSeridi({ tur: "uyari", metin: d.hata }));
 
   if (d.ozet) {
     if (d.ozet.notlar.length) {
@@ -276,7 +276,8 @@ function uygulamaGorunumu() {
   const k = u.kpi;
 
   if (G.sekme === "ozet") {
-    govde.append(h("section", { class: "bolum" }, h("h2", null, "Neye bakmalı"), u.notlar.map((n) => notSeridi(n))));
+    govde.append(h("section", { class: "bolum" }, h("h2", null, "Neye bakmalı"),
+      u.notlar.length ? u.notlar.map((n) => notSeridi(n)) : notSeridi({ tur: "bilgi", metin: "Henüz kaynak bağlı değil. Kaynaklar sekmesinden ekleyebilirsin." })));
     const kutular = kpiKutulari(k, u.seri, u.paraBirimi);
     govde.append(h("section", { class: "bolum" }, h("h2", null, "Rakamlar"), kutular || bagla("en az bir")));
     if (u.seri.aktif && u.aktifGecmisGun > 1) {

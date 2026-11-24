@@ -8,6 +8,7 @@ const SVGNS = "http://www.w3.org/2000/svg";
 const ada = document.getElementById("ada");
 const kucuk = document.getElementById("kucuk");
 let ipucu = null; // { metin, bitis }
+let sonVeri = null;
 
 function h(etiket, ozellik, ...cocuklar) {
   const e = document.createElement(etiket);
@@ -59,7 +60,6 @@ function medyaParcasi(v) {
     h("div", { class: "tuslar" }, tuslar));
 }
 
-let sonVeri = null;
 function ciz(v) {
   sonVeri = v;
   const rakamlar = h("button", { class: "rakamlar", title: "Tam paneli aç", onclick: () => kopru.paneliAc() },

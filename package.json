@@ -13,6 +13,7 @@
     "test": "node --test test/*.test.js",
     "icons": "node tools/icons.js",
     "preview": "node tools/preview.js",
+    "smoke": "node tools/smoke.js",
     "dist": "electron-builder --mac --publish never"
   },
   "devDependencies": {

@@ -98,6 +98,7 @@ Günün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}
 - Günlük aktif kullanıcı geçmişi hiçbir kaynakta hazır durmaz; Appati her gün gördüğü değeri saklar, grafik zamanla dolar.
 - App Store indirme raporları bir-iki gün gecikmeli gelir.
 - Google Play kurulum sayıları API'de yoktur; yalnızca yorumlar okunur.
+- İnternet yokken (uyku sonrası, Wi-Fi kopuk) panel son okunan rakamları göstermeye devam eder ve bunu yazar.
 - Kaynak okuyucular sahte yanıtlarla sınanmıştır (`npm test`); Umami, RevenueCat, App Store ve Google Play gerçek anahtarla henüz denenmedi.
 
 ## Geliştirme
@@ -105,7 +106,7 @@ Günün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}
 ```bash
 npm test                         # kaynak okuyucular ve ayar deposu
 npm run preview                  # arayüzün ekran görüntüleri (preview/), Playwright gerekir
-xvfb-run -a node tools/smoke.js  # Linux'ta gerçek Electron ile uçtan uca duman testi
+xvfb-run -a npm run smoke      # Linux'ta gerçek Electron ile uçtan uca test (panel, anahtar kaydı, çentik)
 ```
 
 | Yol | Ne |

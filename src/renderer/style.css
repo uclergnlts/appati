@@ -98,7 +98,7 @@ button.kart:hover { background: var(--kart-ust); }
 .serit .im { flex: none; width: 16px; height: 16px; margin-top: 1px; }
 .serit.iyi .im { color: var(--iyi); } .serit.uyari .im { color: var(--uyari); } .serit.kotu .im { color: var(--kotu); } .serit.bilgi .im { color: var(--seri); }
 .serit .kim { color: var(--yazi-3); font-size: 11.5px; }
-.serit .baglanti { color: var(--yazi); text-decoration: underline; text-underline-offset: 2px; }
+.serit .baglanti { color: var(--yazi); text-decoration: underline; text-underline-offset: 2px; text-align: left; overflow-wrap: anywhere; }
 
 /* Sayı kutuları */
 .izgara { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

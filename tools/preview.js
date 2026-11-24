@@ -42,6 +42,27 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   await cek("7-acik-genel", { ad: "genel" }, null, "light");
   await cek("7-acik-kullanici", { ad: "uyg", id: "demo-1", sekme: "kullanici" }, null, "light");
   await cek("7-acik-ayarlar", { ad: "ayar" }, null, "light");
+  // Eksik verili durumlar: kaynağı olmayan, yalnızca Supabase'i olan ve kaynağı bozuk uygulamalar; ayrıca boş liste.
+  const { notlar } = require("../src/main/collect");
+  const bos = (ek) => ({ renk: "#3987e5", demo: false, kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], paraBirimi: "$", ...ek });
+  const seyrek = [
+    bos({ id: "s1", ad: "Kaynaksız" }),
+    bos({ id: "s2", ad: "Yalnız Supabase", kaynaklar: [{ tur: "supabase", ad: "Supabase", tamam: true, hata: null, uyarilar: ["Sayaç \"x\" okunamadı (HTTP 404)"] }],
+      kpi: { kayitli: 21, yeniKayitBugun: 0, yeniKayit7g: 0, yeniKayitOnceki7g: 0, aktifBugun: 1, aktif7g: 1 },
+      seri: { kayit: uygulamalar[0].seri.kayit.map((n) => ({ g: n.g, v: 0 })), aktif: uygulamalar[0].seri.aktif.map((n, i) => ({ g: n.g, v: i === 29 ? 1 : 0 })) }, aktifGecmisGun: 1,
+      huni: [{ etiket: "Kayıt olan", deger: 0 }, { etiket: "Eşitlenen", deger: 0 }] }),
+    bos({ id: "s3", ad: "Bozuk", kaynaklar: [{ tur: "umami", ad: "Umami", tamam: false, hata: "Anahtar reddedildi: {\"error\":\"Unauthorized\"}", uyarilar: [] }] }),
+  ];
+  for (const u of seyrek) u.notlar = notlar(u);
+  const asil = paket.durum;
+  paket.durum = { uygulamalar: seyrek, ozet: ozetle(seyrek), zaman: simdi.toISOString(), demo: false, yukleniyor: false, hata: "İnternete bağlanılamadı; son okunan rakamlar gösteriliyor." };
+  await cek("9-seyrek-genel", { ad: "genel" });
+  for (const id of ["s1", "s2", "s3"]) for (const sekme of ["ozet", "kullanici", "gelir", "yorum", "kaynak"]) await cek(`9-seyrek-${id}-${sekme}`, { ad: "uyg", id, sekme });
+  paket.durum = { uygulamalar: [], ozet: null, zaman: null, demo: false, yukleniyor: true };
+  await cek("9-bos-yukleniyor", { ad: "genel" });
+  await cek("9-silinmis-uygulama", { ad: "uyg", id: "yok", sekme: "ozet" });
+  paket.durum = asil;
+
   // Çentik adası: çalan şarkıyla ve boşken.
   const centik = async (ad, veri) => {
     const sayfa = await tarayici.newPage({ viewport: { width: 540, height: 150 }, deviceScaleFactor: 2 });
@@ -59,6 +80,8 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   const calan = { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı Adı (Uzun Sürüm)", alt: "Örnek Sanatçı", kapak: null };
   await centik("8-centik-kucuk", { acik: false, kb: 38, kucuk: { kaynak: "spotify", kapak: null }, rakamlar, demo: false, medyaAcik: true, medya: calan });
   await centik("8-centik-calan", { acik: true, kb: 38, kucuk: { kaynak: "spotify", kapak: null }, rakamlar, demo: false, medyaAcik: true, medya: { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı Adı (Uzun Sürüm)", alt: "Örnek Sanatçı", kapak: null } });
+  await centik("8-centik-youtube", { acik: true, kb: 24, kucuk: null, rakamlar: [], demo: false, medyaAcik: true, medya: { kaynak: "youtube", tarayici: "Safari", oynuyor: null, baslik: "Mol kavramı", alt: "YouTube · Safari", kapak: null } });
+  await centik("8-centik-medyasiz", { acik: true, kb: 38, kucuk: null, rakamlar, demo: false, medyaAcik: false, medya: null });
   await centik("8-centik-bos", { acik: true, kb: 38, kucuk: null, rakamlar, demo: true, medyaAcik: true, medya: null });
   await tarayici.close();
   if (hatalar.length) { console.error(hatalar.join("\n")); process.exit(1); }

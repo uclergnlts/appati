@@ -94,16 +94,16 @@ function depo(klasor, safeStorage) {
       onbellekKirli = true;
     },
 
+    // Yalnızca gönderilen alanlar değişir; gönderilmeyenler olduğu gibi kalır.
     genelKaydet(yeni) {
-      const dk = Math.min(240, Math.max(5, Number(yeni.yenilemeDk) || 15));
-      const saydamlik = Number.isFinite(Number(yeni.saydamlik)) ? Math.min(100, Math.max(0, Math.round(Number(yeni.saydamlik)))) : ayar.genel.saydamlik;
+      const g = ayar.genel;
+      const mantik = (ad) => (yeni[ad] === undefined ? g[ad] : Boolean(yeni[ad]));
+      const sayi = (ad, alt, ust) => (Number.isFinite(Number(yeni[ad])) && yeni[ad] !== null && yeni[ad] !== "" ? Math.min(ust, Math.max(alt, Math.round(Number(yeni[ad])))) : g[ad]);
       ayar.genel = {
-        yenilemeDk: dk, sabit: Boolean(yeni.sabit), acilistaBaslat: Boolean(yeni.acilistaBaslat),
-        tema: TEMALAR.includes(yeni.tema) ? yeni.tema : ayar.genel.tema, saydamlik,
-        bildirim: yeni.bildirim === undefined ? ayar.genel.bildirim : Boolean(yeni.bildirim),
-        cubukSayi: CUBUK.includes(yeni.cubukSayi) ? yeni.cubukSayi : ayar.genel.cubukSayi,
-        centik: yeni.centik === undefined ? ayar.genel.centik : Boolean(yeni.centik),
-        medya: yeni.medya === undefined ? ayar.genel.medya : Boolean(yeni.medya),
+        yenilemeDk: sayi("yenilemeDk", 5, 240), saydamlik: sayi("saydamlik", 0, 100),
+        sabit: mantik("sabit"), acilistaBaslat: mantik("acilistaBaslat"), bildirim: mantik("bildirim"), centik: mantik("centik"), medya: mantik("medya"),
+        tema: TEMALAR.includes(yeni.tema) ? yeni.tema : g.tema,
+        cubukSayi: CUBUK.includes(yeni.cubukSayi) ? yeni.cubukSayi : g.cubukSayi,
       };
       yaz(yol("ayar.json"), JSON.stringify(ayar, null, 2));
     },

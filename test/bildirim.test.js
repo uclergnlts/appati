@@ -28,6 +28,16 @@ test("ilk okumada bildirim yok, sonra yalnızca değişenler", () => {
   assert.deepEqual(duzeldi.bildirimler, []);
 });
 
+test("bağlantı kopukluğu kaynak bozuldu bildirimi üretmez", () => {
+  const ilk = farkBul(undefined, [uyg()]);
+  const kopuk = farkBul(ilk.iz, [uyg({ kpi: {}, kaynaklar: [{ tur: "supabase", ad: "Supabase", tamam: false, hata: "Bağlanılamadı (ENOTFOUND)" }] })]);
+  assert.deepEqual(kopuk.bildirimler, []);
+  // Bağlantı gelince abone sayısı aynıysa bildirim yok; gerçek hata gelirse var.
+  assert.deepEqual(farkBul(kopuk.iz, [uyg()]).bildirimler, []);
+  const gercek = farkBul(kopuk.iz, [uyg({ kaynaklar: [{ tur: "supabase", ad: "Supabase", tamam: false, hata: "Anahtar reddedildi" }] })]);
+  assert.equal(gercek.bildirimler.length, 1);
+});
+
 test("yeni eklenen uygulama ilk turda sessizdir", () => {
   const r = farkBul({ a: { abone: 1, bozuk: [], yorumlar: [] } }, [uyg(), uyg({ id: "b", yorumlar: [yorum(1, "kötü")] })]);
   assert.deepEqual(r.bildirimler.map((b) => b.uygulamaId), ["a"]);

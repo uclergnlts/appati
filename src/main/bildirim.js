@@ -4,10 +4,13 @@ const crypto = require("node:crypto");
 
 const yorumKimligi = (y) => crypto.createHash("sha1").update(`${y.magaza}|${y.tarih}|${y.metin}`).digest("hex").slice(0, 16);
 
+// Bağlantı kopukluğu geçicidir (uyku sonrası, Wi-Fi yok); kaynağın bozulduğu anlamına gelmez.
+const agHatasi = (mesaj) => /^(Bağlanılamadı|Zaman aşımı)/.test(String(mesaj || ""));
+
 function izCikar(u) {
   return {
     abone: u.kpi.abone,
-    bozuk: u.kaynaklar.filter((k) => !k.tamam).map((k) => k.tur),
+    bozuk: u.kaynaklar.filter((k) => !k.tamam && !agHatasi(k.hata)).map((k) => k.tur),
     yorumlar: u.yorumlar.map(yorumKimligi),
   };
 }
@@ -29,8 +32,10 @@ function farkBul(onceki, uygulamalar) {
         bildirimler.push({ uygulamaId: u.id, baslik: `${u.ad}: yeni abone`, metin: `Aktif abone ${eski.abone} → ${yeni.abone}` });
       }
       for (const k of u.kaynaklar) {
-        if (!k.tamam && !eski.bozuk.includes(k.tur)) bildirimler.push({ uygulamaId: u.id, baslik: `${u.ad}: ${k.ad} okunamıyor`, metin: String(k.hata || "").slice(0, 140) });
+        if (!k.tamam && !agHatasi(k.hata) && !eski.bozuk.includes(k.tur)) bildirimler.push({ uygulamaId: u.id, baslik: `${u.ad}: ${k.ad} okunamıyor`, metin: String(k.hata || "").slice(0, 140) });
       }
+      // Ağ hatası sırasında kaynağın önceki "bozuk" durumu korunur (düzelince yeniden bildirilmesin diye).
+      for (const k of u.kaynaklar) if (!k.tamam && agHatasi(k.hata) && eski.bozuk.includes(k.tur)) yeni.bozuk.push(k.tur);
       // Okunamayan kaynağın eski bilgisi korunur; yoksa kaynak düzelince eski yorumlar "yeni" sanılır.
       if (yeni.abone === undefined) yeni.abone = eski.abone;
       yeni.yorumlar = [...new Set([...yeni.yorumlar, ...eski.yorumlar])].slice(0, 300);
@@ -40,4 +45,4 @@ function farkBul(onceki, uygulamalar) {
   return { bildirimler, iz };
 }
 
-module.exports = { farkBul };
+module.exports = { farkBul, agHatasi };

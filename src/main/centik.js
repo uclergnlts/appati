@@ -42,7 +42,7 @@ function centikKur({ veriAl, acildi, kapandi }) {
   pencere.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 
   let d = { acik: false, girme: 0, cikma: 0 };
-  let sayac = null, gizleme = null, kucukGorunur = false, calisiyor = false;
+  let sayac = null, gizleme = null, kucukGorunur = false, calisiyor = false, kapaniyor = false;
 
   // Çentik dahili ekrandadır; dahili ekran yoksa birincil ekranın üst ortası kullanılır.
   function olcu() {
@@ -72,13 +72,14 @@ function centikKur({ veriAl, acildi, kapandi }) {
     pencere.webContents.send("centik", p);
   }
 
-  function kapat() {
-    if (!d.acik) return;
+  function kapat(zorla) {
+    if (!d.acik && !zorla) return;
     d = { acik: false, girme: 0, cikma: 0 };
     if (pencere.isDestroyed()) return;
     pencere.webContents.send("centik", paket(false)); // kapanma canlandırması başlar
     clearTimeout(gizleme);
-    gizleme = setTimeout(dinlen, 240);
+    kapaniyor = true; // canlandırma bitene kadar pencere küçültülmez
+    gizleme = setTimeout(() => { kapaniyor = false; dinlen(); }, 240);
     kapandi();
   }
 
@@ -90,28 +91,29 @@ function centikKur({ veriAl, acildi, kapandi }) {
     d = { acik: sonuc.acik, girme: sonuc.girme, cikma: sonuc.cikma };
     if (sonuc.eylem === "ac") {
       clearTimeout(gizleme);
+      kapaniyor = false;
       pencere.setBounds({ x: Math.round(ekran.x + ekran.width / 2 - EN / 2), y: ekran.y, width: EN, height: BOY });
       if (!pencere.isVisible()) pencere.showInactive();
       pencere.webContents.send("centik", paket(true));
       acildi();
-    } else if (sonuc.eylem === "kapat") {
-      d.acik = true; // kapat() yalnızca açıkken çalışır
-      kapat();
-    }
+    } else if (sonuc.eylem === "kapat") kapat(true);
   }
+
+  // Sayfa yüklenmeden gönderilen ilk veri kaybolur; yüklenince bir kez daha gönder.
+  pencere.webContents.on("did-finish-load", () => { if (calisiyor && !d.acik && !kapaniyor) dinlen(); });
 
   return {
     pencere,
     acik: () => d.acik,
-    kapat,
+    kapat: () => kapat(false),
     // Veri değişti (yeni rakamlar, yeni şarkı, duraklatıldı): açık adayı ya da küçük adayı güncelle.
     guncelle() {
       if (pencere.isDestroyed() || !calisiyor) return;
-      if (d.acik) pencere.webContents.send("centik", paket(true)); else if (!gizleme || gizleme._destroyed) dinlen();
+      if (d.acik) pencere.webContents.send("centik", paket(true)); else if (!kapaniyor) dinlen();
     },
     baslat() { calisiyor = true; clearInterval(sayac); sayac = setInterval(tik, 150); },
     durdur() {
-      calisiyor = false; clearInterval(sayac); sayac = null; clearTimeout(gizleme);
+      calisiyor = false; clearInterval(sayac); sayac = null; clearTimeout(gizleme); kapaniyor = false;
       const acikti = d.acik;
       d = { acik: false, girme: 0, cikma: 0 }; kucukGorunur = false;
       if (!pencere.isDestroyed()) pencere.hide();
