@@ -5,7 +5,8 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { KAYNAKLAR, gizliAlanlar } = require("./katalog");
 
-const VARSAYILAN = { uygulamalar: [], genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60 } };
+const VARSAYILAN = { uygulamalar: [], genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun" } };
+const CUBUK = ["aktifBugun", "ziyaretciBugun", "yeniKayitBugun", "mrr", "yok"];
 const TEMALAR = ["sistem", "acik", "koyu"];
 
 function oku(dosya, yedek) {
@@ -99,6 +100,8 @@ function depo(klasor, safeStorage) {
       ayar.genel = {
         yenilemeDk: dk, sabit: Boolean(yeni.sabit), acilistaBaslat: Boolean(yeni.acilistaBaslat),
         tema: TEMALAR.includes(yeni.tema) ? yeni.tema : ayar.genel.tema, saydamlik,
+        bildirim: yeni.bildirim === undefined ? ayar.genel.bildirim : Boolean(yeni.bildirim),
+        cubukSayi: CUBUK.includes(yeni.cubukSayi) ? yeni.cubukSayi : ayar.genel.cubukSayi,
       };
       yaz(yol("ayar.json"), JSON.stringify(ayar, null, 2));
     },

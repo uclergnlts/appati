@@ -39,6 +39,15 @@ npm run demo       # örnek veriyle çalıştır
 npm run dist       # dist/ altına .dmg ve .zip üret (Mac'te)
 ```
 
+## Bildirimler ve menü çubuğu
+
+- Yeni düşük puanlı yorum, yeni abone ya da okunamaz hâle gelen bir kaynak olduğunda Mac bildirimi gelir; tıklayınca ilgili uygulama açılır. İlk okumada bildirim gelmez, yalnızca sonradan değişenler haber olur. **Ayarlar > Genel** altından kapatılır.
+- Simgenin yanındaki sayı seçilebilir: aktif kullanıcı, site ziyaretçisi, yeni kayıt, MRR ya da hiçbiri.
+
+## Dönüşüm hunisi
+
+Supabase kaynağındaki "Dönüşüm hunisi" alanına adımları sayaçlarla aynı biçimde yazarsın (`Etiket | tablo | filtre`). İlk adım her zaman kayıtlı kullanıcı sayısıdır. ucler. şablonunda hazır gelir: kayıt olan → hesabı eşitlenen → puan kazanan → bir aşama bitiren → Plus abonesi.
+
 ## Görünüm
 
 - Panel macOS'un bulanık cam malzemesini kullanır; arka plan hafif saydamdır. Saydamlığı **Ayarlar > Görünüm** altındaki kaydırıcıyla ayarlarsın.

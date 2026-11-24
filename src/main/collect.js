@@ -59,13 +59,13 @@ function notlar(u) {
 async function uygulamayiTopla(uyg, gizliler, ctx) {
   const u = {
     id: uyg.id, ad: uyg.ad, renk: uyg.renk || "#3987e5", demo: false,
-    kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], paraBirimi: "$",
+    kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], paraBirimi: "$",
   };
   const isler = KAYNAKLAR.map(async (tanim) => {
     const ayar = { ...((uyg.kaynaklar || {})[tanim.tur] || {}) };
     const gizli = (gizliler || {})[tanim.tur] || {};
     if (!kaynakDolu(tanim.tur, ayar, gizli)) return null;
-    if (tanim.tur === "supabase") ayar.sayaclar = sayaclariOku(ayar.sayaclar);
+    if (tanim.tur === "supabase") { ayar.sayaclar = sayaclariOku(ayar.sayaclar); ayar.huni = sayaclariOku(ayar.huni); }
     try {
       return { tanim, veri: await OKUYUCU[tanim.tur](ayar, gizli, ctx) };
     } catch (e) {
@@ -83,6 +83,7 @@ async function uygulamayiTopla(uyg, gizliler, ctx) {
     if (s.veri.ulkeler) u.ulkeler = s.veri.ulkeler;
     if (s.veri.yorumlar) u.yorumlar.push(...s.veri.yorumlar);
     if (s.veri.sayaclar) u.sayaclar.push(...s.veri.sayaclar);
+    if (s.veri.huni && s.veri.huni.length) u.huni = s.veri.huni;
     if (s.veri.paraBirimi) u.paraBirimi = s.veri.paraBirimi;
     if (s.veri.kurulumSonGun) u.kurulumSonGun = s.veri.kurulumSonGun;
   }

@@ -8,7 +8,7 @@ const kopru = window.appati || {
   uygulamaKaydet: async () => window.__ONIZLEME__,
   uygulamaSil: async () => window.__ONIZLEME__,
   genelKaydet: async () => window.__ONIZLEME__,
-  gizle() {}, cik() {}, disari() {}, durumDinle() {}, vurguDinle() {},
+  gizle() {}, cik() {}, disari() {}, durumDinle() {}, vurguDinle() {}, gitDinle() {},
 };
 if (!window.appati) document.body.classList.add("onizleme");
 
@@ -148,6 +148,19 @@ function siraListesi(ogeler, bosYazi) {
     h("span", { class: "iz" }, h("i", { style: `width:${(o.v / enb) * 100}%` })))));
 }
 
+// Huni: her adımın çubuğu ilk adıma göre; yanında bir önceki adımdan kalanların yüzdesi.
+function huniKarti(adimlar) {
+  const ilk = Math.max(1, adimlar[0].deger);
+  return h("div", { class: "kart" }, adimlar.map((a, i) => {
+    const onceki = i ? adimlar[i - 1].deger : null;
+    const oran = onceki ? ` · önceki adımdan %${((a.deger / onceki) * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}` : "";
+    return h("div", { class: "sira" },
+      h("span", { class: "ad", title: a.etiket }, a.etiket),
+      h("span", { class: "sayi" }, h("b", null, sayi(a.deger)), i && onceki ? h("span", { class: "oran" }, oran) : null),
+      h("span", { class: "iz kalin" }, h("i", { style: `width:${Math.min(100, (a.deger / ilk) * 100)}%` })));
+  }));
+}
+
 /* ---------- parçalar ---------- */
 
 function kutu(etiket, deger, ek) {
@@ -270,6 +283,9 @@ function uygulamaGorunumu() {
       govde.append(h("section", { class: "bolum" }, h("h2", null, "Aktif kullanıcı", h("span", null, "günlük")),
         grafikKarti("Günlük aktif", u.seri.aktif, "Aktif kullanıcı", u.aktifGecmisGun < 30 ? `Geçmiş, Appati çalıştıkça birikir (şimdilik ${u.aktifGecmisGun} gün).` : null)));
     }
+    if (u.huni && u.huni.length > 1) {
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "Dönüşüm hunisi", h("span", null, "bütün zamanlar")), huniKarti(u.huni)));
+    }
     if (u.sayaclar.length) {
       govde.append(h("section", { class: "bolum" }, h("h2", null, "Sayaçlar"),
         h("div", { class: "kart" }, u.sayaclar.map((x) => h("div", { class: "liste-satir" }, h("span", null, x.etiket), h("b", null, sayi(x.deger)))))));
@@ -336,13 +352,16 @@ function ayarGorunumu() {
   const dk = h("input", { type: "number", min: 5, max: 240, value: a.genel.yenilemeDk });
   const sabit = h("input", { type: "checkbox", checked: a.genel.sabit });
   const acilis = h("input", { type: "checkbox", checked: a.genel.acilistaBaslat });
+  const bildirim = h("input", { type: "checkbox", checked: a.genel.bildirim });
+  const cubuk = h("select", { "aria-label": "Menü çubuğunda gösterilen sayı" }, [["aktifBugun", "Aktif kullanıcı (bugün)"], ["ziyaretciBugun", "Site ziyaretçisi (bugün)"], ["yeniKayitBugun", "Yeni kayıt (bugün)"], ["mrr", "Aylık yinelenen gelir (MRR)"], ["yok", "Sayı gösterme"]]
+    .map(([d, e]) => h("option", { value: d, selected: a.genel.cubukSayi === d ? "" : null }, e)));
   const saydam = h("input", { type: "range", min: 0, max: 100, step: 5, value: a.genel.saydamlik, "aria-label": "Saydamlık",
     oninput: (o) => gorunumUygula({ ...a.genel, saydamlik: Number(o.target.value) }) });
   const kaydet = async (ek) => {
-    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), ...(ek || {}) });
+    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), bildirim: bildirim.checked, cubukSayi: cubuk.value, ...(ek || {}) });
     ciz();
   };
-  for (const e of [dk, sabit, acilis, saydam]) e.addEventListener("change", () => kaydet());
+  for (const e of [dk, sabit, acilis, saydam, bildirim, cubuk]) e.addEventListener("change", () => kaydet());
   const temalar = h("div", { class: "secici", role: "group", "aria-label": "Tema" }, [["sistem", "Sistem"], ["acik", "Açık"], ["koyu", "Koyu"]].map(([ad, etiket]) =>
     h("button", { type: "button", "aria-pressed": String(a.genel.tema === ad), onclick: () => kaydet({ tema: ad }) }, etiket)));
 
@@ -368,6 +387,8 @@ function ayarGorunumu() {
           h("label", { class: "alan", style: "margin-top:0" }, h("span", null, "Yenileme sıklığı (dakika)"), dk),
           h("label", { class: "onay" }, sabit, "Paneli ekranda sabit tut (başka yere tıklayınca kapanmasın)"),
           h("label", { class: "onay" }, acilis, "Mac açılınca Appati'yi başlat"),
+          h("label", { class: "onay" }, bildirim, "Bildirim gönder (düşük puanlı yorum, yeni abone, okunamayan kaynak)"),
+          h("label", { class: "alan" }, h("span", null, "Menü çubuğunda simgenin yanındaki sayı"), cubuk),
           h("div", { class: "kucuk-yazi" }, "Kısayol: ⌥⌘A paneli açar ve kapatır."))),
       h("section", { class: "bolum" }, h("h2", null, "Gizlilik"),
         h("div", { class: "kart kucuk-yazi", style: "margin-top:0" }, "Anahtarların macOS Anahtar Zinciri ile şifrelenip yalnızca bu Mac'te saklanır. Appati'nin sunucusu yoktur; veriler doğrudan senin hesaplarından okunur.")),
@@ -479,6 +500,7 @@ kopru.durumDinle((d) => {
   if (G.ad !== "form" && G.ad !== "ayar") ciz();
 });
 
+kopru.gitDinle((g) => { if (P) git(g); });
 kopru.vurguDinle((r) => { if (P) { P.vurgu = r; gorunumUygula(P.ayar.genel); } });
 
 kopru.baslangic().then((p) => { P = p; ciz(); });

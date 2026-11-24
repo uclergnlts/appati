@@ -60,6 +60,7 @@ function demoUygulamalar(simdi) {
         magaza, puan, baslik, metin, ulke, yazan: "", tarih: new Date(simdi.getTime() - (i * 2 + 1) * 86400000).toISOString(),
       })),
       sayaclar: sira === 0 ? [{ etiket: "Günün sorusunu çözen (bugün)", deger: 48 }, { etiket: "Ligde olan", deger: 310 }] : [],
+      huni: [["Kayıt olan", 1], ["Hesabı eşitlenen", 0.81], ["Puan kazanan", 0.56], ["Bir aşama bitiren", 0.31], ["Plus abonesi", 0.0205]].map(([etiket, oran]) => ({ etiket, deger: Math.round(4200 * o * oran) })),
       paraBirimi: "$", aktifGecmisGun: 30, kurulumSonGun: gunler[28],
     };
     u.notlar = notlar(u);

@@ -46,6 +46,7 @@ module.exports = async function supabase(ayar, gizli, { istek, simdi }) {
     },
     seri: { kayit: kayitSeri },
     sayaclar: [],
+    huni: [],
     uyarilar: [],
   };
 
@@ -60,11 +61,25 @@ module.exports = async function supabase(ayar, gizli, { istek, simdi }) {
     sonuc.kpi.aktif7g = girisler.filter((d) => d >= yediGun).length;
   }
 
+  const doldur = (f) => String(f || "")
+    .replaceAll("{simdi}", encodeURIComponent(simdi.toISOString()))
+    .replaceAll("{bugun}", gunAnahtari(simdi));
+
+  // Huni: ilk adım kayıtlı kullanıcı; bir adım okunamazsa huni yarım gösterilmez.
+  const adimlar = (ayar.huni || []).filter((a) => a.tablo);
+  if (adimlar.length) {
+    try {
+      const huni = [{ etiket: "Kayıt olan", deger: kullanicilar.length }];
+      for (const a of adimlar) huni.push({ etiket: a.etiket || a.tablo, deger: await say(istek, taban, baslik, a.tablo, doldur(a.filtre)) });
+      sonuc.huni = huni;
+    } catch (e) {
+      sonuc.uyarilar.push(`Dönüşüm hunisi okunamadı (${e.message})`);
+    }
+  }
+
   for (const s of ayar.sayaclar || []) {
     if (!s.tablo) continue;
-    const filtre = String(s.filtre || "")
-      .replaceAll("{simdi}", encodeURIComponent(simdi.toISOString()))
-      .replaceAll("{bugun}", gunAnahtari(simdi));
+    const filtre = doldur(s.filtre);
     try {
       sonuc.sayaclar.push({ etiket: s.etiket || s.tablo, deger: await say(istek, taban, baslik, s.tablo, filtre) });
     } catch (e) {

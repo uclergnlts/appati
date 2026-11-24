@@ -12,7 +12,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   const uygulamalar = demoUygulamalar(simdi);
   const paket = {
     durum: { uygulamalar, ozet: ozetle(uygulamalar), zaman: simdi.toISOString(), demo: true, yukleniyor: false },
-    ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60 }, uygulamalar: [] },
+    ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun" }, uygulamalar: [] },
     katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: "önizleme", vurgu: null,
   };
   const cikti = path.join(__dirname, "..", "preview");
@@ -33,6 +33,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   await cek("1-genel", { ad: "genel" });
   await cek("2-genel-alt", { ad: "genel" }, (s) => s.evaluate(() => { document.querySelector(".govde").scrollTop = 9999; }));
   for (const sekme of ["ozet", "kullanici", "gelir", "yorum", "kaynak"]) await cek(`3-${sekme}`, { ad: "uyg", id: "demo-1", sekme });
+  await cek("3-ozet-alt", { ad: "uyg", id: "demo-1", sekme: "ozet" }, (s) => s.evaluate(() => { document.querySelector(".govde").scrollTop = 9999; }));
   await cek("4-ayarlar", { ad: "ayar" });
   await cek("5-form", { ad: "ayar" }, async (s) => { await s.click("text=ucler. şablonuyla ekle"); await s.waitForSelector("details"); });
   await cek("6-ipucu", { ad: "uyg", id: "demo-1", sekme: "kullanici" }, async (s) => { await s.mouse.move(250, 200); });

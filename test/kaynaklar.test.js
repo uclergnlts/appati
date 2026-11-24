@@ -48,6 +48,7 @@ test("supabase: kayıt, aktiflik ve sayaçlar", async () => {
   const r = await supabase({
     url: "https://x.supabase.co/", aktifTablo: "ilerleme", aktifSutun: "guncelleme",
     sayaclar: sayaclariOku("Plus | abonelik | bitis=gt.{simdi}\nBozuk | bozuk |"),
+    huni: sayaclariOku("Eşitlenen | ilerleme |\nPlus | abonelik | bitis=gt.{simdi}"),
   }, { key: "gizli" }, ctx);
   assert.equal(r.kpi.kayitli, 4);
   assert.equal(r.kpi.yeniKayitBugun, 1);
@@ -57,6 +58,7 @@ test("supabase: kayıt, aktiflik ve sayaçlar", async () => {
   assert.equal(r.seri.kayit.length, 30);
   assert.deepEqual(r.sayaclar, [{ etiket: "Plus", deger: 3 }]);
   assert.equal(r.uyarilar.length, 1);
+  assert.deepEqual(r.huni, [{ etiket: "Kayıt olan", deger: 4 }, { etiket: "Eşitlenen", deger: 7 }, { etiket: "Plus", deger: 3 }]);
   assert.equal(cagrilar[0].secenek.headers.apikey, "gizli");
   assert.ok(!cagrilar.find((c) => c.url.includes("abonelik")).url.includes("{simdi}"));
 });

@@ -1,11 +1,12 @@
 // Appati: menü çubuğunda duran, ekranın sağ kenarında açılan panel.
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Notification, Tray, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
 const path = require("node:path");
 const { depo } = require("./store");
 const { KAYNAKLAR, SABLONLAR } = require("./katalog");
 const { uygulamayiTopla, ozetle } = require("./collect");
 const { demoUygulamalar } = require("./demo");
 const { istekci } = require("./util");
+const { farkBul } = require("./bildirim");
 
 const GENISLIK = 440;
 const DEMO = process.env.APPATI_DEMO === "1";
@@ -87,8 +88,11 @@ function tepsiKur() {
 function yayinla() {
   if (pencere && !pencere.isDestroyed()) pencere.webContents.send("durum", durum);
   if (tepsi && MAC) {
-    const a = durum.ozet && durum.ozet.kpi.aktifBugun;
-    tepsi.setTitle(a === undefined || a === null ? "" : ` ${a.toLocaleString("tr-TR")}`);
+    // Simgenin yanındaki sayı: Ayarlar > Menü çubuğunda gösterilen sayı.
+    const hangi = kayit.ayar().genel.cubukSayi;
+    const d = hangi === "yok" || !durum.ozet ? undefined : durum.ozet.kpi[hangi];
+    const yazi = d === undefined || d === null ? "" : Math.round(d).toLocaleString("tr-TR");
+    tepsi.setTitle(yazi ? ` ${hangi === "mrr" ? durum.ozet.paraBirimi : ""}${yazi}` : "");
   }
 }
 
@@ -107,7 +111,17 @@ async function yenile() {
       const gizliler = kayit.gizliler();
       const ctx = { istek: istekci(fetch), simdi, onbellek: kayit.onbellek };
       uygulamalar = await Promise.all(tanimlar.map((u) => uygulamayiTopla(u, gizliler[u.id], ctx)));
+      // Önceki okumayla farkı bildir (yeni düşük puanlı yorum, yeni abone, bozulan kaynak).
+      const { bildirimler, iz } = farkBul(kayit.onbellek.al("bildirim.iz"), uygulamalar);
+      kayit.onbellek.yaz("bildirim.iz", iz);
       kayit.onbellek.kaydet();
+      if (kayit.ayar().genel.bildirim && Notification.isSupported()) {
+        for (const b of bildirimler.slice(0, 5)) {
+          const n = new Notification({ title: b.baslik, body: b.metin, silent: false });
+          n.on("click", () => { goster(); pencere.webContents.send("git", { ad: "uyg", id: b.uygulamaId, sekme: "ozet" }); });
+          n.show();
+        }
+      }
     }
     durum = { uygulamalar, ozet: ozetle(uygulamalar), zaman: simdi.toISOString(), demo, yukleniyor: false };
   })().catch((e) => {
@@ -135,6 +149,7 @@ function ipcKur() {
     sabitle();
     temaUygula();
     zamanla();
+    yayinla();
     if (MAC && app.isPackaged) app.setLoginItemSettings({ openAtLogin: kayit.ayar().genel.acilistaBaslat });
     return paket();
   });

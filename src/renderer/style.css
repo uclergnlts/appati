@@ -206,3 +206,11 @@ details.kart > summary em { font-style: normal; font-size: 11px; color: var(--ya
 .secici button { padding: 5px 8px; border-radius: 7px; color: var(--yazi-2); }
 .secici button[aria-pressed="true"] { background: var(--kart-ust); color: var(--yazi); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.14); }
 input[type="range"] { width: 100%; accent-color: var(--vurgu); margin: 2px 0 0; }
+
+/* Huni ve açılır liste */
+.sira .iz.kalin { height: 8px; border-radius: 4px; }
+.sira .iz.kalin i { border-radius: 4px; }
+.sira .sayi b { color: var(--yazi); font-weight: 600; }
+.sira .sayi .oran { color: var(--yazi-3); font-size: 11.5px; }
+select { width: 100%; font: inherit; color: var(--yazi); background: var(--girdi); border: 1px solid var(--cizgi); border-radius: 9px; padding: 6px 8px; }
+select:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
