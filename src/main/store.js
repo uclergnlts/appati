@@ -5,7 +5,8 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { KAYNAKLAR, gizliAlanlar } = require("./katalog");
 
-const VARSAYILAN = { uygulamalar: [], genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false } };
+const VARSAYILAN = { uygulamalar: [], genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60 } };
+const TEMALAR = ["sistem", "acik", "koyu"];
 
 function oku(dosya, yedek) {
   try { return JSON.parse(fs.readFileSync(dosya, "utf8")); } catch { return yedek; }
@@ -94,7 +95,11 @@ function depo(klasor, safeStorage) {
 
     genelKaydet(yeni) {
       const dk = Math.min(240, Math.max(5, Number(yeni.yenilemeDk) || 15));
-      ayar.genel = { yenilemeDk: dk, sabit: Boolean(yeni.sabit), acilistaBaslat: Boolean(yeni.acilistaBaslat) };
+      const saydamlik = Number.isFinite(Number(yeni.saydamlik)) ? Math.min(100, Math.max(0, Math.round(Number(yeni.saydamlik)))) : ayar.genel.saydamlik;
+      ayar.genel = {
+        yenilemeDk: dk, sabit: Boolean(yeni.sabit), acilistaBaslat: Boolean(yeni.acilistaBaslat),
+        tema: TEMALAR.includes(yeni.tema) ? yeni.tema : ayar.genel.tema, saydamlik,
+      };
       yaz(yol("ayar.json"), JSON.stringify(ayar, null, 2));
     },
 

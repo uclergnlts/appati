@@ -1,5 +1,5 @@
 // Appati: menü çubuğunda duran, ekranın sağ kenarında açılan panel.
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, globalShortcut, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
 const path = require("node:path");
 const { depo } = require("./store");
 const { KAYNAKLAR, SABLONLAR } = require("./katalog");
@@ -40,7 +40,8 @@ function pencereKur() {
   pencere = new BrowserWindow({
     width: GENISLIK, height: 800, show: false, frame: false, resizable: false, movable: false,
     minimizable: false, maximizable: false, fullscreenable: false, skipTaskbar: true,
-    transparent: true, hasShadow: true, vibrancy: "hud", visualEffectState: "active", roundedCorners: true,
+    // "popover" malzemesi açık ve koyu görünüme kendiliğinden uyar; arkadaki pencereler bulanık görünür.
+    transparent: true, hasShadow: true, vibrancy: "popover", visualEffectState: "active", roundedCorners: true,
     backgroundColor: "#00000000",
     webPreferences: { preload: path.join(__dirname, "..", "preload.js"), contextIsolation: true, sandbox: true, nodeIntegration: false },
   });
@@ -51,6 +52,16 @@ function pencereKur() {
   pencere.webContents.on("will-navigate", (o) => o.preventDefault());
   pencere.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   sabitle();
+}
+
+const TEMA = { sistem: "system", acik: "light", koyu: "dark" };
+function temaUygula() {
+  nativeTheme.themeSource = TEMA[kayit.ayar().genel.tema] || "system";
+}
+
+// macOS'ta Sistem Ayarları > Görünüm'de seçilen vurgu rengi (#rrggbb); başka sistemlerde null.
+function vurguRengi() {
+  try { return MAC ? `#${systemPreferences.getAccentColor().slice(0, 6)}` : null; } catch { return null; }
 }
 
 function sabitle() {
@@ -114,7 +125,7 @@ function zamanla() {
 }
 
 function ipcKur() {
-  const paket = () => ({ durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion() });
+  const paket = () => ({ durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion(), vurgu: vurguRengi() });
   ipcMain.handle("baslangic", paket);
   ipcMain.handle("yenile", async () => { await yenile(); return paket(); });
   ipcMain.handle("uygulama:kaydet", async (_o, gelen) => { kayit.uygulamaKaydet(gelen); yenile(); return paket(); });
@@ -122,6 +133,7 @@ function ipcKur() {
   ipcMain.handle("genel:kaydet", async (_o, yeni) => {
     kayit.genelKaydet(yeni || {});
     sabitle();
+    temaUygula();
     zamanla();
     if (MAC && app.isPackaged) app.setLoginItemSettings({ openAtLogin: kayit.ayar().genel.acilistaBaslat });
     return paket();
@@ -138,8 +150,12 @@ app.whenReady().then(() => {
   // Yalnızca Linux'taki duman testi için: anahtar halkası olmayan makinede Chromium'un temel şifrelemesine izin ver.
   if (process.platform === "linux" && process.env.APPATI_TEST === "1") safeStorage.setUsePlainTextEncryption(true);
   kayit = depo(app.getPath("userData"), safeStorage);
+  temaUygula();
   ipcKur();
   pencereKur();
+  const vurguGonder = () => pencere && !pencere.isDestroyed() && pencere.webContents.send("vurgu", vurguRengi());
+  nativeTheme.on("updated", vurguGonder);
+  systemPreferences.on("accent-color-changed", vurguGonder);
   tepsiKur();
   globalShortcut.register("Alt+Command+A", ac_kapa);
   pencere.once("ready-to-show", goster);

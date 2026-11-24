@@ -8,7 +8,7 @@ const kopru = window.appati || {
   uygulamaKaydet: async () => window.__ONIZLEME__,
   uygulamaSil: async () => window.__ONIZLEME__,
   genelKaydet: async () => window.__ONIZLEME__,
-  gizle() {}, cik() {}, disari() {}, durumDinle() {},
+  gizle() {}, cik() {}, disari() {}, durumDinle() {}, vurguDinle() {},
 };
 if (!window.appati) document.body.classList.add("onizleme");
 
@@ -336,8 +336,15 @@ function ayarGorunumu() {
   const dk = h("input", { type: "number", min: 5, max: 240, value: a.genel.yenilemeDk });
   const sabit = h("input", { type: "checkbox", checked: a.genel.sabit });
   const acilis = h("input", { type: "checkbox", checked: a.genel.acilistaBaslat });
-  const kaydet = async () => { P = await kopru.genelKaydet({ yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked }); ciz(); };
-  for (const e of [dk, sabit, acilis]) e.addEventListener("change", kaydet);
+  const saydam = h("input", { type: "range", min: 0, max: 100, step: 5, value: a.genel.saydamlik, "aria-label": "Saydamlık",
+    oninput: (o) => gorunumUygula({ ...a.genel, saydamlik: Number(o.target.value) }) });
+  const kaydet = async (ek) => {
+    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), ...(ek || {}) });
+    ciz();
+  };
+  for (const e of [dk, sabit, acilis, saydam]) e.addEventListener("change", () => kaydet());
+  const temalar = h("div", { class: "secici", role: "group", "aria-label": "Tema" }, [["sistem", "Sistem"], ["acik", "Açık"], ["koyu", "Koyu"]].map(([ad, etiket]) =>
+    h("button", { type: "button", "aria-pressed": String(a.genel.tema === ad), onclick: () => kaydet({ tema: ad }) }, etiket)));
 
   return [
     ustCubuk(dugme("geri", "Geri", () => git({ ad: "genel" })), "Ayarlar", `Appati ${P.surum || ""}`, null),
@@ -350,6 +357,12 @@ function ayarGorunumu() {
         h("div", { class: "eylem" },
           h("button", { class: "btn ana", onclick: () => formAc(null) }, "Uygulama ekle"),
           P.sablonlar.filter((s) => !a.uygulamalar.some((u) => u.ad === s.ad)).map((s) => h("button", { class: "btn", onclick: () => formAc(null, s) }, `${s.ad} şablonuyla ekle`)))),
+      h("section", { class: "bolum" }, h("h2", null, "Görünüm"),
+        h("div", { class: "kart" },
+          h("label", { class: "alan", style: "margin-top:0" }, h("span", null, "Tema")), temalar,
+          h("div", { class: "kucuk-yazi" }, "Sistem: macOS açık ya da koyu görünüme geçtiğinde panel de geçer. Düğmeler macOS vurgu rengini kullanır."),
+          h("label", { class: "alan" }, h("span", null, "Arka plan saydamlığı"), saydam),
+          h("div", { class: "kucuk-yazi" }, "macOS'ta “Saydamlığı azalt” açıksa panel opak görünür."))),
       h("section", { class: "bolum" }, h("h2", null, "Genel"),
         h("div", { class: "kart" },
           h("label", { class: "alan", style: "margin-top:0" }, h("span", null, "Yenileme sıklığı (dakika)"), dk),
@@ -437,8 +450,16 @@ async function sabitDegistir() {
   P = await kopru.genelKaydet({ ...P.ayar.genel, sabit: !P.ayar.genel.sabit }); ciz();
 }
 
+// Saydamlık ve macOS vurgu rengi CSS değişkenlerine yazılır; açık / koyu geçişini tarayıcı kendisi yapar.
+function gorunumUygula(genel) {
+  const kok_ = document.documentElement.style;
+  kok_.setProperty("--ton", String(Math.round((0.95 - (genel.saydamlik ?? 60) * 0.008) * 100) / 100));
+  if (P && /^#[0-9a-f]{6}$/i.test(P.vurgu || "")) kok_.setProperty("--vurgu", P.vurgu); else kok_.removeProperty("--vurgu");
+}
+
 function ciz(basaDon) {
   ipucuGizle();
+  gorunumUygula(P.ayar.genel);
   const eski = kok.querySelector(".govde");
   const kaydirma = eski && !basaDon ? eski.scrollTop : 0;
   const gorunum = G.ad === "uyg" ? uygulamaGorunumu() : G.ad === "ayar" ? ayarGorunumu() : G.ad === "form" ? formGorunumu() : genelGorunum();
@@ -457,5 +478,7 @@ kopru.durumDinle((d) => {
   P.durum = d;
   if (G.ad !== "form" && G.ad !== "ayar") ciz();
 });
+
+kopru.vurguDinle((r) => { if (P) { P.vurgu = r; gorunumUygula(P.ayar.genel); } });
 
 kopru.baslangic().then((p) => { P = p; ciz(); });

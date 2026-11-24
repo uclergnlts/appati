@@ -4,7 +4,7 @@ Bütün uygulamalarının rakamları, Mac'inin kenarında tek panelde. Menü çu
 
 ![Panel](docs/panel.png)
 
-*Görseldeki sayılar örnek veridir.*
+*Görseldeki sayılar örnek veridir. Solda koyu, ortada açık tema; sağda ayarlar.*
 
 ## Ne gösterir
 
@@ -38,6 +38,13 @@ npm start          # paneli çalıştır
 npm run demo       # örnek veriyle çalıştır
 npm run dist       # dist/ altına .dmg ve .zip üret (Mac'te)
 ```
+
+## Görünüm
+
+- Panel macOS'un bulanık cam malzemesini kullanır; arka plan hafif saydamdır. Saydamlığı **Ayarlar > Görünüm** altındaki kaydırıcıyla ayarlarsın.
+- Tema **Sistem / Açık / Koyu** seçilebilir. Sistem'de macOS görünümü değişince panel de değişir.
+- Düğmeler ve odak çerçeveleri macOS vurgu rengini kullanır.
+- Sistemde "Saydamlığı azalt" açıksa panel opak, "Kontrastı artır" açıksa çizgiler belirgin olur.
 
 ## Uygulama ekleme
 
