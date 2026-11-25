@@ -6,6 +6,7 @@ const crypto = require("node:crypto");
 const { istekci, gunAnahtari, GUN } = require("../src/main/util");
 const supabase = require("../src/main/sources/supabase");
 const ganalytics = require("../src/main/sources/ganalytics");
+const umami = require("../src/main/sources/umami");
 const revenuecat = require("../src/main/sources/revenuecat");
 const appstore = require("../src/main/sources/appstore");
 const googleplay = require("../src/main/sources/googleplay");
@@ -85,6 +86,42 @@ test("istek: bağlantı hatasında bir kez yeniden dener, sonra anlaşılır hat
   assert.equal(n, 2);
   const hepDusen = istekci(async () => { throw Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } }); }, 1000, 1);
   await assert.rejects(hepDusen("https://x"), /Bağlanılamadı \(ENOTFOUND\)/);
+});
+
+test("umami: paylaşım bağlantısı, bölge seçimi, seri ve kaynaklar", async () => {
+  const bugun = gunAnahtari(simdi);
+  let ozetSira = 0;
+  const { ctx, cagrilar } = sahte([
+    [/\/share\/AbC123xyz/, () => json({ websiteId: "site-1", token: "PAY" })],
+    // AB bölgesi bu siteyi tanımıyor; veri ABD bölgesinde.
+    [/analytics\/eu\/api\/websites/, () => new Response('{"error":{"message":"Unauthorized"}}', { status: 401 })],
+    [/\/stats/, () => json(ozetSira++ === 0 ? { visitors: 12, pageviews: 40, comparison: { visitors: 3 } } : { visitors: { value: 80 }, pageviews: { value: 300 } })],
+    [/\/pageviews/, () => json({ pageviews: [{ x: `${bugun}T00:00:00Z`, y: 40 }], sessions: [{ x: `${bugun}T00:00:00Z`, y: 14 }] })],
+    [/\/active/, () => json({ visitors: 3 })],
+    [/type=referrer/, () => json([{ x: "google.com", y: 20 }, { x: "", y: 9 }])],
+    [/type=path/, () => new Response("bad", { status: 400 })],
+    [/type=url/, () => json([{ x: "/", y: 50 }])],
+    [/type=country/, () => json([{ x: "TR", y: 60 }])],
+  ]);
+  const r = await umami({}, { paylasim: "https://cloud.umami.is/share/AbC123xyz/ucler.app" }, ctx);
+  assert.deepEqual([r.kpi.ziyaretciBugun, r.kpi.ziyaretci7g, r.kpi.sitedeSimdi], [12, 80, 3]);
+  assert.equal(r.seri.ziyaret[29].v, 14);
+  assert.equal(r.kaynaklar[1].ad, "Doğrudan (adres yazan, yer imi)");
+  assert.deepEqual(r.sayfalar, [{ ad: "/", v: 50 }]);
+  assert.deepEqual(r.uyarilar, []);
+  const veri = cagrilar.find((c) => c.url.includes("/us/api/websites/site-1/stats"));
+  assert.equal(veri.secenek.headers["x-umami-share-token"], "PAY");
+  assert.equal(veri.secenek.headers["x-umami-share-context"], "1");
+  // Bulunan bölge hatırlanır: ikinci turda önce o denenir.
+  assert.equal(ctx.onbellek.m["umami.bolge.AbC123xyz"], "https://cloud.umami.is/analytics/us/api");
+  cagrilar.length = 0; ozetSira = 0;
+  await umami({}, { paylasim: "AbC123xyz" }, ctx);
+  assert.ok(cagrilar[0].url.includes("/us/api/share/"));
+  assert.ok(!cagrilar.some((c) => c.url.includes("/eu/api/")));
+  // Kendi sunucusundaki Umami tek adres kullanır; tanınmayan girdi anlaşılır hata verir.
+  assert.deepEqual(umami.baglantiCoz("https://istatistik.example.com/share/Qwerty12/site").tabanlar, ["https://istatistik.example.com/api"]);
+  await assert.rejects(umami({}, { paylasim: "merhaba dünya" }, ctx), /tanınmadı/);
+  await assert.rejects(umami({}, { paylasim: "Yok12345" }, sahte([]).ctx), /bulunamadı/);
 });
 
 test("google analytics: raporlar, tarih aralıkları, kaynak adları, hata çevirileri", async () => {
@@ -199,6 +236,9 @@ test("google analytics, Google Play'e girilen servis hesabını paylaşır", asy
   const u = await uygulamayiTopla({ id: "g1", ad: "x", kaynaklar: { ganalytics: { propertyId: "123" }, googleplay: { packageName: "app.x" } } }, { googleplay: { serviceAccount: hesap } }, ctx);
   assert.deepEqual(u.kaynaklar.map((k) => [k.tur, k.tamam]), [["ganalytics", true], ["googleplay", true]]);
   assert.ok(cagrilar.some((c) => c.url.includes("analyticsdata")));
+  // Yalnızca gizli alanı olan kaynak (Umami) açık alan olmadan da çalışır.
+  const um = await uygulamayiTopla({ id: "g3", ad: "z", kaynaklar: {} }, { umami: { paylasim: "Yok12345" } }, sahte([]).ctx);
+  assert.deepEqual(um.kaynaklar.map((k) => [k.tur, k.tamam]), [["umami", false]]);
   // Google Play de yoksa Analytics sessizce atlanır.
   const v = await uygulamayiTopla({ id: "g2", ad: "y", kaynaklar: { ganalytics: { propertyId: "123" } } }, {}, ctx);
   assert.deepEqual(v.kaynaklar, []);

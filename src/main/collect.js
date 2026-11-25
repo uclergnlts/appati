@@ -4,6 +4,7 @@ const { gunAnahtari, sonGunler, seri } = require("./util");
 
 const OKUYUCU = {
   supabase: require("./sources/supabase"),
+  umami: require("./sources/umami"),
   ganalytics: require("./sources/ganalytics"),
   revenuecat: require("./sources/revenuecat"),
   appstore: require("./sources/appstore"),
@@ -23,7 +24,9 @@ function sayaclariOku(metin) {
 function kaynakDolu(tur, ayar, gizli) {
   const tanim = KAYNAKLAR.find((k) => k.tur === tur);
   const zorunluGizli = gizliAlanlar(tur);
-  return zorunluGizli.every((a) => gizli && gizli[a]) && tanim.alanlar.some((a) => !a.gizli && ayar && ayar[a.ad]);
+  const acikAlanlar = tanim.alanlar.filter((a) => !a.gizli);
+  // Yalnızca gizli alanı olan kaynakta (Umami paylaşım bağlantısı) gizli alanın dolu olması yeter.
+  return zorunluGizli.every((a) => gizli && gizli[a]) && (!acikAlanlar.length || acikAlanlar.some((a) => ayar && ayar[a.ad]));
 }
 
 function degisim(yeni, eski) {

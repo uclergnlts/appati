@@ -13,6 +13,7 @@ Bütün uygulamalarının rakamları, Mac'inin kenarında tek panelde. Menü çu
 | Kaynak | Ne gelir | Gereken |
 |---|---|---|
 | Supabase | Kayıtlı kullanıcı, günlük yeni kayıt, aktif kullanıcı, kendi tablo sayaçların | Proje adresi + gizli anahtar |
+| Umami | Site ziyaretçisi, nereden geldikleri, en çok açılan sayfalar, ülkeler, şu an sitede kaç kişi var | Ücretsiz paylaşım bağlantısı (Share URL) |
 | Google Analytics (GA4) | Site ziyaretçisi, nereden geldikleri, en çok açılan sayfalar, ülkeler | Property ID + servis hesabı JSON'u |
 | RevenueCat | Abone, deneme, MRR, 28 günlük gelir | Project ID + gizli v2 anahtarı |
 | App Store Connect | iOS yorumları, günlük ilk indirme | Apple ID, Issuer ID, Key ID, .p8 (+ indirme için Vendor Number) |
@@ -74,7 +75,8 @@ Panelde dişli simgesi > **Uygulama ekle**. `ucler.` için hazır şablon vardı
 Anahtarları nereden alırsın:
 
 - **Supabase:** Project Settings > API keys > gizli anahtar (`service_role` ya da `sb_secret_…`). Appati yalnızca okur.
-- **Google Analytics:** Sitede GA4 kurulu olmalı. Analytics > Yönetici > Mülk ayrıntıları'ndaki sayısal Property ID'yi gir. Servis hesabının e-postasını Yönetici > Mülk erişim yönetimi'nde Görüntüleyici olarak ekle ve Cloud projesinde **Google Analytics Data API**'yi aç. Servis hesabı alanını boş bırakırsan Google Play'e girdiğin JSON kullanılır.
+- **Umami:** Websites > siten > Edit > **Share URL**'yi aç, çıkan bağlantıyı yapıştır. Ücretli API anahtarı gerekmez. Bağlantıyı bilen herkes istatistikleri görebilir; kimseyle paylaşma.
+- **Google Analytics (Umami yerine ya da yanında):** Sitede GA4 kurulu olmalı. Analytics > Yönetici > Mülk ayrıntıları'ndaki sayısal Property ID'yi gir. Servis hesabının e-postasını Yönetici > Mülk erişim yönetimi'nde Görüntüleyici olarak ekle ve Cloud projesinde **Google Analytics Data API**'yi aç. Servis hesabı alanını boş bırakırsan Google Play'e girdiğin JSON kullanılır.
 - **RevenueCat:** Project settings > API keys > New secret key (v2, *Charts metrics: read*). Project ID aynı sayfadadır.
 - **App Store Connect:** Users and Access > Integrations > App Store Connect API. İndirme sayıları için anahtarın *Sales* yetkisi ve Vendor Number gerekir.
 - **Google Play:** Google Cloud'da servis hesabı oluştur, JSON anahtarını indir, hesabı Play Console > Kullanıcılar ve izinler altında ekle.
@@ -99,9 +101,10 @@ Günün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}
 - Günlük aktif kullanıcı geçmişi hiçbir kaynakta hazır durmaz; Appati her gün gördüğü değeri saklar, grafik zamanla dolar.
 - App Store indirme raporları bir-iki gün gecikmeli gelir.
 - Google Play kurulum sayıları API'de yoktur; yalnızca yorumlar okunur.
+- Umami, belgelenmiş API yerine kendi paylaşım sayfasının kullandığı uçtan okunur; Umami bunu değiştirirse okuyucunun güncellenmesi gerekir.
 - Google Analytics bugünün verisini birkaç saat gecikmeyle işler; "şu an sitede" sayısı gerçek zamanlıdır.
 - İnternet yokken (uyku sonrası, Wi-Fi kopuk) panel son okunan rakamları göstermeye devam eder ve bunu yazar.
-- Kaynak okuyucular sahte yanıtlarla sınanmıştır (`npm test`); Google Analytics, RevenueCat ve App Store gerçek anahtarla henüz denenmedi.
+- Kaynak okuyucular sahte yanıtlarla sınanmıştır (`npm test`); Umami gerçek bir paylaşım bağlantısıyla denendi; Google Analytics, RevenueCat ve App Store gerçek anahtarla henüz denenmedi.
 
 ## Geliştirme
 

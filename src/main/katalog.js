@@ -13,6 +13,12 @@ const KAYNAKLAR = [
     ],
   },
   {
+    tur: "umami", ad: "Umami", ne: "Site ziyaretçisi, nereden geldikleri, sayfalar, ülkeler (ücretsiz paylaşım bağlantısıyla)",
+    alanlar: [
+      { ad: "paylasim", etiket: "Paylaşım bağlantısı (Share URL)", gizli: true, ornek: "https://cloud.umami.is/share/AbC123xyz/ucler.app", ipucu: "Umami > Websites > siten > Edit > Share URL'yi aç, çıkan bağlantıyı yapıştır. Ücretli API anahtarı gerekmez. Bağlantıyı bilen herkes istatistikleri görebilir; kimseyle paylaşma." },
+    ],
+  },
+  {
     tur: "ganalytics", ad: "Google Analytics", ne: "Site ziyaretçisi, nereden geldikleri, sayfalar, ülkeler",
     alanlar: [
       { ad: "propertyId", etiket: "Property ID (sayısal mülk kimliği)", ornek: "412345678", ipucu: "Analytics > Yönetici > Mülk ayrıntıları. G- ile başlayan ölçüm kimliği değil." },
@@ -58,6 +64,7 @@ const SABLONLAR = [
         huni: "Hesabı eşitlenen | ilerleme |\nPuan kazanan | ilerleme | puan=gt.0\nBir aşama bitiren | ilerleme | veri->asama=neq.%7B%7D\nPlus abonesi | abonelik | ortam=eq.PRODUCTION&or=(bitis.is.null,bitis.gt.{simdi})",
         sayaclar: "Plus abonesi | abonelik | ortam=eq.PRODUCTION&or=(bitis.is.null,bitis.gt.{simdi})\nGünün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}\nLigde olan | ilerleme | ligde=is.true",
       },
+      umami: {},
       ganalytics: {},
       revenuecat: {},
       appstore: {},
