@@ -30,6 +30,10 @@ Son üçü `ucler.app` deposunda TestFlight için kullandıklarınla aynıdır; 
 
 ## 3. Derle
 
-Sırlar eklendikten sonra **Actions > Mac uygulaması > Run workflow**. İş akışı imzalar, Apple'a onaylatır ve sonucu `codesign` ile `spctl` üzerinden doğrular; doğrulama geçmezse derleme kırmızı olur.
+Sırlar eklendikten sonra **Actions > Mac uygulaması > Run workflow**. İş akışı uygulamayı imzalar, Apple'a onaya gönderir ve en çok 25 dakika bekler:
+
+- Onay gelirse onay belgesi uygulamaya iliştirilir ve sonuç `spctl` ile doğrulanır.
+- Apple reddederse derleme kırmızı olur.
+- 25 dakikada bitmezse (bir hesabın ilk gönderiminde Apple'ın kuyruğu saatler sürebilir) derleme sarı uyarıyla biter ve imzalı ama henüz onaysız paket yüklenir. Apple onayı sonradan tamamlayınca macOS bunu ilk açılışta çevrimiçi doğrular; o zamana kadar "Yine de Aç" uyarısı çıkabilir. Anahtar Zinciri'nin şifre sormaması için imza yeterlidir.
 
 İmzalı ilk sürümü kurduğunda Anahtar Zinciri bir kez daha şifre sorar (eski kayıt imzasız sürüme aitti). Sonraki sürümlerde sormaz.

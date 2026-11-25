@@ -28,25 +28,56 @@ jobs:
         if: env.IMZALI != 'true'
         run: npm run dist
 
-      - name: Paketle (Developer ID ile imzalı ve Apple onaylı)
+      - name: İmzala (Developer ID)
         if: env.IMZALI == 'true'
         env:
           CSC_LINK: ${{ secrets.MAC_CERT_P12 }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
-          APPLE_API_KEY_ID: ${{ secrets.ASC_ANAHTAR_ID }}
-          APPLE_API_ISSUER: ${{ secrets.ASC_YAYINCI_ID }}
+        # Yalnızca .app üretilir ve imzalanır; Apple onayı aşağıda ayrı ve süre sınırlı yapılır.
+        run: |
+          npx electron-builder --mac --dir --publish never -c.mac.notarize=false
+          UYG=$(find dist -maxdepth 2 -name "Appati.app" | head -1)
+          echo "UYG=$UYG" >> "$GITHUB_ENV"
+          codesign --verify --deep --strict --verbose=2 "$UYG"
+
+      - name: Apple onayı (notarization)
+        if: env.IMZALI == 'true'
+        env:
           ASC_ANAHTAR: ${{ secrets.ASC_ANAHTAR }}
+          ASC_ANAHTAR_ID: ${{ secrets.ASC_ANAHTAR_ID }}
+          ASC_YAYINCI_ID: ${{ secrets.ASC_YAYINCI_ID }}
+        # Apple'ın kuyruğu bazen (özellikle bir hesabın ilk gönderiminde) çok uzun sürer. 25 dakikada bitmezse
+        # derleme beklemeyi bırakır: uygulama yine imzalıdır ve Apple onayı tamamlayınca macOS bunu çevrimiçi doğrular.
         run: |
           printf '%s' "$ASC_ANAHTAR" > "$RUNNER_TEMP/asc.p8"
-          APPLE_API_KEY="$RUNNER_TEMP/asc.p8" npx electron-builder --mac --publish never -c.mac.notarize=true
+          ditto -c -k --keepParent "$UYG" "$RUNNER_TEMP/onay.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/onay.zip" --key "$RUNNER_TEMP/asc.p8" --key-id "$ASC_ANAHTAR_ID" --issuer "$ASC_YAYINCI_ID" \
+            --wait --timeout 25m --output-format json > "$RUNNER_TEMP/onay.json" || true
           rm -f "$RUNNER_TEMP/asc.p8"
+          cat "$RUNNER_TEMP/onay.json" || true
+          DURUM=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('status',''))" "$RUNNER_TEMP/onay.json" 2>/dev/null || echo "")
+          KIMLIK=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('id',''))" "$RUNNER_TEMP/onay.json" 2>/dev/null || echo "")
+          echo "ONAY=$DURUM" >> "$GITHUB_ENV"
+          if [ "$DURUM" = "Accepted" ]; then
+            xcrun stapler staple "$UYG"
+            spctl --assess --type execute --verbose=2 "$UYG"
+            echo "### İmzalı ve Apple onaylı" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$DURUM" = "Invalid" ] || [ "$DURUM" = "Rejected" ]; then
+            echo "::error::Apple onayı reddetti (gönderim $KIMLIK)."
+            exit 1
+          else
+            echo "### İmzalı; Apple onayı henüz bitmedi" >> "$GITHUB_STEP_SUMMARY"
+            echo "Gönderim kimliği: \`$KIMLIK\` (durum: ${DURUM:-bilinmiyor}). Uygulama imzalıdır; Apple onayı tamamlayınca macOS ilk açılışta çevrimiçi doğrular." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Apple onayı 25 dakikada bitmedi; imzalı ama henüz onaysız paket yüklendi."
+          fi
 
-      - name: İmzayı doğrula
+      - name: Paketle (.dmg ve .zip)
         if: env.IMZALI == 'true'
         run: |
-          UYG=$(find dist -maxdepth 2 -name "Appati.app" | head -1)
-          codesign --verify --deep --strict --verbose=2 "$UYG"
-          spctl --assess --type execute --verbose=2 "$UYG"
+          SURUM=$(node -p "require('./package.json').version")
+          ditto -c -k --keepParent "$UYG" "dist/Appati-$SURUM-universal.zip"
+          mkdir -p "$RUNNER_TEMP/dmg" && cp -R "$UYG" "$RUNNER_TEMP/dmg/" && ln -s /Applications "$RUNNER_TEMP/dmg/Applications"
+          hdiutil create -volname "Appati" -srcfolder "$RUNNER_TEMP/dmg" -ov -format UDZO "dist/Appati-$SURUM-universal.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
