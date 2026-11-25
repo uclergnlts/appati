@@ -35,7 +35,7 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
         # Yalnızca .app üretilir ve imzalanır; Apple onayı aşağıda ayrı ve süre sınırlı yapılır.
         run: |
-          npx electron-builder --mac --dir --publish never -c.mac.notarize=false
+          npx electron-builder --mac --dir --universal --publish never -c.mac.notarize=false
           UYG=$(find dist -maxdepth 2 -name "Appati.app" | head -1)
           echo "UYG=$UYG" >> "$GITHUB_ENV"
           codesign --verify --deep --strict --verbose=2 "$UYG"
