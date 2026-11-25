@@ -7,6 +7,7 @@ const { istekci, gunAnahtari, GUN } = require("../src/main/util");
 const supabase = require("../src/main/sources/supabase");
 const ganalytics = require("../src/main/sources/ganalytics");
 const umami = require("../src/main/sources/umami");
+const searchconsole = require("../src/main/sources/searchconsole");
 const revenuecat = require("../src/main/sources/revenuecat");
 const appstore = require("../src/main/sources/appstore");
 const googleplay = require("../src/main/sources/googleplay");
@@ -102,8 +103,14 @@ test("umami: paylaşım bağlantısı, bölge seçimi, seri ve kaynaklar", async
     [/type=path/, () => new Response("bad", { status: 400 })],
     [/type=url/, () => json([{ x: "/", y: 50 }])],
     [/type=country/, () => json([{ x: "TR", y: 60 }])],
+    [/type=event/, () => json([{ x: "anlamadim", y: 9 }, { x: "plus_gor", y: 4 }])],
+    [/event-data\/values.*eventName=anlamadim.*propertyName=kart/, () => json([{ value: "fizik.vektorler.4", total: 2 }, { value: "kimya.mol.6", total: 7 }])],
   ]);
-  const r = await umami({}, { paylasim: "https://cloud.umami.is/share/AbC123xyz/ucler.app" }, ctx);
+  const r = await umami({ olayDokumleri: [{ etiket: "Anlaşılmayan", olay: "anlamadim", ozellik: "kart" }, { etiket: "Yok", olay: "yok", ozellik: "x" }] }, { paylasim: "https://cloud.umami.is/share/AbC123xyz/ucler.app" }, ctx);
+  assert.deepEqual(r.olaylar, [{ ad: "anlamadim", v: 9 }, { ad: "plus_gor", v: 4 }]);
+  assert.deepEqual(r.olayListeleri, [{ etiket: "Anlaşılmayan", ogeler: [{ ad: "kimya.mol.6", v: 7 }, { ad: "fizik.vektorler.4", v: 2 }] }]);
+  assert.equal(r.uyarilar.length, 1); // "Yok" dökümü okunamadı, diğerleri etkilenmedi
+  r.uyarilar.length = 0;
   assert.deepEqual([r.kpi.ziyaretciBugun, r.kpi.ziyaretci7g, r.kpi.sitedeSimdi], [12, 80, 3]);
   assert.equal(r.seri.ziyaret[29].v, 14);
   assert.equal(r.kaynaklar[1].ad, "Doğrudan (adres yazan, yer imi)");
@@ -122,6 +129,37 @@ test("umami: paylaşım bağlantısı, bölge seçimi, seri ve kaynaklar", async
   assert.deepEqual(umami.baglantiCoz("https://istatistik.example.com/share/Qwerty12/site").tabanlar, ["https://istatistik.example.com/api"]);
   await assert.rejects(umami({}, { paylasim: "merhaba dünya" }, ctx), /tanınmadı/);
   await assert.rejects(umami({}, { paylasim: "Yok12345" }, sahte([]).ctx), /bulunamadı/);
+});
+
+test("search console: haftalık toplamlar son veri gününe göre, sorgular, sayfalar, hata çevirileri", async () => {
+  const { privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const hesap = JSON.stringify({ client_email: "a@b.iam.gserviceaccount.com", project_id: "proje", private_key: privateKey.export({ type: "pkcs8", format: "pem" }) });
+  // 3 gün gecikmeli 16 günlük veri: her gün 10 tıklama, son 7 günde 20.
+  const gunluk = Array.from({ length: 16 }, (_, i) => ({ keys: [gunAnahtari(gunOnce(18 - i))], clicks: i >= 9 ? 20 : 10, impressions: 100, position: 5 }));
+  const { ctx, cagrilar } = sahte([
+    [/oauth2/, () => json({ access_token: "tok" })],
+    [/searchAnalytics/, (_u, s) => {
+      const b = JSON.parse(s.body);
+      if (b.dimensions[0] === "date") return json({ rows: gunluk });
+      if (b.dimensions[0] === "query") return json({ rows: [{ keys: ["vektör nedir"], clicks: 64, impressions: 1210, position: 4.23 }] });
+      return json({ rows: [{ keys: ["https://ucler.app/fizik/vektorler/?a=1"], clicks: 71, impressions: 1400, position: 5 }] });
+    }],
+  ]);
+  const r = await searchconsole({ siteUrl: "ucler.app" }, { serviceAccount: hesap }, ctx);
+  assert.ok(cagrilar.some((c) => c.url.includes(encodeURIComponent("sc-domain:ucler.app"))));
+  assert.deepEqual([r.kpi.aramaTiklama7g, r.kpi.aramaTiklamaOnceki7g, r.kpi.aramaGosterim7g], [140, 70, 700]);
+  assert.equal(r.arama.sonGun, gunAnahtari(gunOnce(3)));
+  assert.equal(r.arama.sorgular[0].ad, "vektör nedir");
+  assert.match(r.arama.sorgular[0].alt, /1\.210 gösterim · ortalama 4,2\. sıra/);
+  assert.equal(r.arama.sayfalar[0].ad, "/fizik/vektorler/?a=1");
+  assert.equal(searchconsole.mulkCoz("https://ucler.app"), "https://ucler.app/");
+  assert.equal(searchconsole.mulkCoz("sc-domain:x.com"), "sc-domain:x.com");
+  // Bir haftadan az veri varken önceki hafta karşılaştırması uydurulmaz.
+  const az = sahte([[/oauth2/, () => json({ access_token: "t" })], [/searchAnalytics/, () => json({ rows: gunluk.slice(0, 5) })]]).ctx;
+  assert.equal((await searchconsole({ siteUrl: "ucler.app" }, { serviceAccount: hesap }, az)).kpi.aramaTiklamaOnceki7g, undefined);
+  const ret = (mesaj, durum = 403) => sahte([[/oauth2/, () => json({ access_token: "t" })], [/searchAnalytics/, () => new Response(JSON.stringify({ error: { message: mesaj } }), { status: durum })]]).ctx;
+  await assert.rejects(searchconsole({ siteUrl: "ucler.app" }, { serviceAccount: hesap }, ret("Google Search Console API has not been used in project 9 before or it is disabled.")), /Search Console API” kapalı/);
+  await assert.rejects(searchconsole({ siteUrl: "ucler.app" }, { serviceAccount: hesap }, ret("User does not have sufficient permission for site 'sc-domain:ucler.app'.")), /Kullanıcılar ve izinler.*a@b\.iam/);
 });
 
 test("google analytics: raporlar, tarih aralıkları, kaynak adları, hata çevirileri", async () => {

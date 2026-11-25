@@ -145,6 +145,7 @@ function siraListesi(ogeler, bosYazi) {
   const enb = Math.max(1, ...ogeler.map((o) => o.v));
   return h("div", { class: "kart" }, ogeler.map((o) => h("div", { class: "sira" },
     h("span", { class: "ad", title: o.ad }, o.ad), h("span", { class: "sayi" }, sayi(o.v)),
+    o.alt ? h("span", { class: "alt-satir" }, o.alt) : null,
     h("span", { class: "iz" }, h("i", { style: `width:${(o.v / enb) * 100}%` })))));
 }
 
@@ -266,7 +267,7 @@ function uygulamaKarti(u) {
     cizgi ? kivilcim(cizgi, u.seri.ziyaret ? "Ziyaret" : "Yeni kayıt") : null);
 }
 
-const SEKMELER = [["ozet", "Özet"], ["kullanici", "Kullanıcılar"], ["gelir", "Gelir"], ["yorum", "Yorumlar"], ["kaynak", "Kaynaklar"]];
+const SEKMELER = [["ozet", "Özet"], ["kullanici", "Kullanıcılar"], ["arama", "Arama"], ["gelir", "Gelir"], ["yorum", "Yorumlar"], ["kaynak", "Kaynaklar"]];
 
 function uygulamaGorunumu() {
   const u = P.durum.uygulamalar.find((x) => x.id === G.id);
@@ -287,6 +288,9 @@ function uygulamaGorunumu() {
     if (u.huni && u.huni.length > 1) {
       govde.append(h("section", { class: "bolum" }, h("h2", null, "Dönüşüm hunisi", h("span", null, "bütün zamanlar")), huniKarti(u.huni)));
     }
+    for (const l of u.olayListeleri || []) {
+      govde.append(h("section", { class: "bolum" }, h("h2", null, l.etiket, h("span", null, "son 30 gün")), siraListesi(l.ogeler, "Son 30 günde bu olay hiç gelmedi.")));
+    }
     if (u.sayaclar.length) {
       govde.append(h("section", { class: "bolum" }, h("h2", null, "Sayaçlar"),
         h("div", { class: "kart" }, u.sayaclar.map((x) => h("div", { class: "liste-satir" }, h("span", null, x.etiket), h("b", null, sayi(x.deger)))))));
@@ -305,6 +309,28 @@ function uygulamaGorunumu() {
     govde.append(h("section", { class: "bolum" }, h("h2", null, "Nereden geliyorlar", h("span", null, "ziyaret · son 7 gün")), siraListesi(u.trafik, "Trafik kaynağı verisi yok.")));
     govde.append(h("section", { class: "bolum" }, h("h2", null, "En çok açılan sayfalar", h("span", null, "son 7 gün")), siraListesi(u.sayfalar, "Sayfa verisi yok.")));
     govde.append(h("section", { class: "bolum" }, h("h2", null, "Ülkeler", h("span", null, "son 7 gün")), siraListesi(u.ulkeler, "Ülke verisi yok.")));
+  }
+
+  if (G.sekme === "kullanici" && u.olaylar && u.olaylar.length) {
+    govde.append(h("section", { class: "bolum" }, h("h2", null, "Sitede yapılanlar", h("span", null, "olay · son 30 gün")), siraListesi(u.olaylar)));
+  }
+
+  if (G.sekme === "arama") {
+    const a = u.arama;
+    if (!a) {
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "Google araması"), bagla("Google Search Console")));
+    } else {
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "Google araması", h("span", null, a.sonGun ? `son veri ${gunYaz(a.sonGun)}` : "veri yok")),
+        h("div", { class: "izgara iki" },
+          kutu("Tıklama · 7 gün", sayi(k.aramaTiklama7g), { yeni: k.aramaTiklama7g, eski: k.aramaTiklamaOnceki7g, seri: u.seri.aramaTiklama, ne: "Tıklama" }),
+          kutu("Gösterim · 7 gün", sayi(k.aramaGosterim7g), { yeni: k.aramaGosterim7g, eski: k.aramaGosterimOnceki7g, seri: u.seri.aramaGosterim, ne: "Gösterim" })),
+        h("div", { class: "kucuk-yazi" }, "Google bu veriyi 2-3 gün gecikmeyle verir; haftalık toplamlar verisi gelen son güne göre hesaplanır.")));
+      if (u.seri.aramaTiklama && u.seri.aramaTiklama.length > 1) {
+        govde.append(h("section", { class: "bolum" }, h("h2", null, "Aramadan gelen tıklama", h("span", null, "günlük")), grafikKarti("Günlük tıklama", u.seri.aramaTiklama, "Tıklama")));
+      }
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "En çok tıklanan aramalar", h("span", null, "tıklama · son 30 gün")), siraListesi(a.sorgular, "Henüz arama verisi yok.")));
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "Aramadan en çok açılan sayfalar", h("span", null, "tıklama · son 30 gün")), siraListesi(a.sayfalar, "Henüz sayfa verisi yok.")));
+    }
   }
 
   if (G.sekme === "gelir") {

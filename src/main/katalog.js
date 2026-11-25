@@ -16,6 +16,14 @@ const KAYNAKLAR = [
     tur: "umami", ad: "Umami", ne: "Site ziyaretçisi, nereden geldikleri, sayfalar, ülkeler (ücretsiz paylaşım bağlantısıyla)",
     alanlar: [
       { ad: "paylasim", etiket: "Paylaşım bağlantısı (Share URL)", gizli: true, ornek: "https://cloud.umami.is/share/AbC123xyz/ucler.app", ipucu: "Umami > Websites > siten > Edit > Share URL'yi aç, çıkan bağlantıyı yapıştır. Ücretli API anahtarı gerekmez. Bağlantıyı bilen herkes istatistikleri görebilir; kimseyle paylaşma." },
+      { ad: "olayDokumleri", etiket: "Olay dökümleri (isteğe bağlı, her satır: Etiket | olay | özellik)", cokSatir: true, istege: true, ornek: "En çok anlaşılmayan kartlar | anlamadim | kart", ipucu: "Siteden Umami'ye gönderilen bir olayın bir özelliğine göre son 30 günün dökümünü gösterir." },
+    ],
+  },
+  {
+    tur: "searchconsole", ad: "Google Search Console", ne: "Google aramasında tıklama, gösterim, sorgular, sayfalar",
+    alanlar: [
+      { ad: "siteUrl", etiket: "Mülk (alan adı ya da tam adres)", ornek: "ucler.app", ipucu: "Search Console'da alan adı mülkün varsa yalnızca alan adını yaz (ucler.app). URL ön ekli mülk için tam adresi yaz (https://ucler.app/)." },
+      { ad: "serviceAccount", etiket: "Servis hesabı JSON'u", gizli: true, cokSatir: true, yedek: "googleplay", ipucu: "Boş bırakırsan Google Play'e girdiğin servis hesabı kullanılır. Hesabın e-postası Search Console > Ayarlar > Kullanıcılar ve izinler'e eklenmeli; Cloud projesinde Google Search Console API açık olmalı." },
     ],
   },
   {
@@ -64,7 +72,8 @@ const SABLONLAR = [
         huni: "Hesabı eşitlenen | ilerleme |\nPuan kazanan | ilerleme | puan=gt.0\nBir aşama bitiren | ilerleme | veri->asama=neq.%7B%7D\nPlus abonesi | abonelik | ortam=eq.PRODUCTION&or=(bitis.is.null,bitis.gt.{simdi})",
         sayaclar: "Plus abonesi | abonelik | ortam=eq.PRODUCTION&or=(bitis.is.null,bitis.gt.{simdi})\nGünün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}\nLigde olan | ilerleme | ligde=is.true",
       },
-      umami: {},
+      umami: { olayDokumleri: "En çok anlaşılmayan kartlar | anlamadim | kart" },
+      searchconsole: { siteUrl: "ucler.app" },
       ganalytics: {},
       revenuecat: {},
       appstore: {},

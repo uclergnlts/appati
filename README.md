@@ -14,6 +14,7 @@ Bütün uygulamalarının rakamları, Mac'inin kenarında tek panelde. Menü çu
 |---|---|---|
 | Supabase | Kayıtlı kullanıcı, günlük yeni kayıt, aktif kullanıcı, kendi tablo sayaçların | Proje adresi + gizli anahtar |
 | Umami | Site ziyaretçisi, nereden geldikleri, en çok açılan sayfalar, ülkeler, şu an sitede kaç kişi var | Ücretsiz paylaşım bağlantısı (Share URL) |
+| Google Search Console | Google aramasında tıklama ve gösterim, en çok getiren aramalar ve sayfalar | Mülk adresi + servis hesabı JSON'u |
 | Google Analytics (GA4) | Site ziyaretçisi, nereden geldikleri, en çok açılan sayfalar, ülkeler | Property ID + servis hesabı JSON'u |
 | RevenueCat | Abone, deneme, MRR, 28 günlük gelir | Project ID + gizli v2 anahtarı |
 | App Store Connect | iOS yorumları, günlük ilk indirme | Apple ID, Issuer ID, Key ID, .p8 (+ indirme için Vendor Number) |
@@ -28,7 +29,7 @@ Hiç uygulama eklenmemişken panel **örnek veri** gösterir ve bunu açıkça y
 ### Hazır uygulama
 GitHub'da **Actions > Mac uygulaması** çalışmasının altındaki `Appati-mac` dosyasını indir, içindeki `.dmg`'yi aç, Appati'yi Uygulamalar klasörüne sürükle.
 
-Uygulama Apple Developer ID ile imzalı değildir. İlk açılışta macOS engellerse: **Sistem Ayarları > Gizlilik ve Güvenlik > Yine de Aç**, ya da Terminal'de:
+Depoya imzalama sırları eklenmediği sürece uygulama Apple Developer ID ile imzalı değildir (kurulumu: [docs/IMZALAMA.md](docs/IMZALAMA.md)). İlk açılışta macOS engellerse: **Sistem Ayarları > Gizlilik ve Güvenlik > Yine de Aç**, ya da Terminal'de:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Appati.app
@@ -76,6 +77,8 @@ Anahtarları nereden alırsın:
 
 - **Supabase:** Project Settings > API keys > gizli anahtar (`service_role` ya da `sb_secret_…`). Appati yalnızca okur.
 - **Umami:** Websites > siten > Edit > **Share URL**'yi aç, çıkan bağlantıyı yapıştır. Ücretli API anahtarı gerekmez. Bağlantıyı bilen herkes istatistikleri görebilir; kimseyle paylaşma.
+- **Umami olay dökümleri:** Umami kutusundaki "Olay dökümleri" alanına `Etiket | olay | özellik` yazarsan o olayın son 30 günlük dökümü Özet sekmesinde görünür. ucler. şablonunda "En çok anlaşılmayan kartlar" hazır gelir.
+- **Google Search Console:** Mülk olarak alan adını yaz (`ucler.app`). Servis hesabının e-postasını Search Console > Ayarlar > Kullanıcılar ve izinler'e ekle ve Cloud projesinde **Google Search Console API**'yi aç. Servis hesabı alanını boş bırakırsan Google Play'e girdiğin JSON kullanılır.
 - **Google Analytics (Umami yerine ya da yanında):** Sitede GA4 kurulu olmalı. Analytics > Yönetici > Mülk ayrıntıları'ndaki sayısal Property ID'yi gir. Servis hesabının e-postasını Yönetici > Mülk erişim yönetimi'nde Görüntüleyici olarak ekle ve Cloud projesinde **Google Analytics Data API**'yi aç. Servis hesabı alanını boş bırakırsan Google Play'e girdiğin JSON kullanılır.
 - **RevenueCat:** Project settings > API keys > New secret key (v2, *Charts metrics: read*). Project ID aynı sayfadadır.
 - **App Store Connect:** Users and Access > Integrations > App Store Connect API. İndirme sayıları için anahtarın *Sales* yetkisi ve Vendor Number gerekir.
@@ -102,9 +105,10 @@ Günün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}
 - App Store indirme raporları bir-iki gün gecikmeli gelir.
 - Google Play kurulum sayıları API'de yoktur; yalnızca yorumlar okunur.
 - Umami, belgelenmiş API yerine kendi paylaşım sayfasının kullandığı uçtan okunur; Umami bunu değiştirirse okuyucunun güncellenmesi gerekir.
+- Google Search Console verisi 2-3 gün gecikmeli gelir.
 - Google Analytics bugünün verisini birkaç saat gecikmeyle işler; "şu an sitede" sayısı gerçek zamanlıdır.
 - İnternet yokken (uyku sonrası, Wi-Fi kopuk) panel son okunan rakamları göstermeye devam eder ve bunu yazar.
-- Kaynak okuyucular sahte yanıtlarla sınanmıştır (`npm test`); Umami gerçek bir paylaşım bağlantısıyla denendi; Google Analytics, RevenueCat ve App Store gerçek anahtarla henüz denenmedi.
+- Kaynak okuyucular sahte yanıtlarla sınanmıştır (`npm test`); Umami gerçek bir paylaşım bağlantısıyla denendi; Google Search Console, Google Analytics, RevenueCat ve App Store gerçek anahtarla henüz denenmedi.
 
 ## Geliştirme
 

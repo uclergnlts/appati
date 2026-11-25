@@ -43,7 +43,7 @@ function demoUygulamalar(simdi) {
     const z7 = topla(ziyaret, 23, 30);
     const u = {
       id: t.id, ad: t.ad, renk: t.renk, demo: true,
-      kaynaklar: ["Supabase", "Google Analytics", "RevenueCat", "App Store Connect", "Google Play"].map((ad) => ({ tur: ad, ad, tamam: true, hata: null, uyarilar: [] })),
+      kaynaklar: ["Supabase", "Umami", "Google Search Console", "RevenueCat", "App Store Connect", "Google Play"].map((ad) => ({ tur: ad, ad, tamam: true, hata: null, uyarilar: [] })),
       kpi: {
         aktifBugun: aktif[29].v, aktif7g: Math.round(aktif[29].v * 3.1), kayitli: Math.round(4200 * o),
         yeniKayitBugun: kayit[29].v, yeniKayit7g: topla(kayit, 23, 30), yeniKayitOnceki7g: topla(kayit, 16, 23),
@@ -51,8 +51,9 @@ function demoUygulamalar(simdi) {
         ziyaretciOnceki7g: topla(ziyaret, 16, 23), goruntuleme7g: Math.round(z7 * 3.4), sitedeSimdi: Math.round(6 * o + r() * 4),
         abone: Math.round(86 * o), deneme: Math.round(12 * o), mrr: Math.round(412 * o), gelir28g: Math.round(520 * o),
         kurulumIos7g: topla(kurulum, 23, 30), kurulumIosOnceki7g: topla(kurulum, 16, 23),
+        ...(sira === 0 ? { aramaTiklama7g: Math.round(topla(kurulum, 21, 28) * 0.9), aramaTiklamaOnceki7g: Math.round(topla(kurulum, 14, 21) * 0.9), aramaGosterim7g: topla(ziyaret, 21, 28) * 6, aramaGosterimOnceki7g: topla(ziyaret, 14, 21) * 6 } : {}),
       },
-      seri: { ziyaret, kayit, aktif, kurulumIos: kurulum, goruntuleme: ziyaret.map((n) => ({ g: n.g, v: Math.round(n.v * 3.4) })) },
+      seri: { ziyaret, kayit, aktif, kurulumIos: kurulum, ...(sira === 0 ? { aramaTiklama: kurulum.slice(0, 28).map((n) => ({ g: n.g, v: Math.round(n.v * 0.9) })), aramaGosterim: ziyaret.slice(0, 28).map((n) => ({ g: n.g, v: n.v * 6 })) } : {}), goruntuleme: ziyaret.map((n) => ({ g: n.g, v: Math.round(n.v * 3.4) })) },
       trafik: t.trafik.map((ad, i) => ({ ad, v: Math.round((z7 * (0.42 - i * 0.08)) / (1 + i * 0.2)) })),
       sayfalar: ["/", "/ogren/", "/videolar/", "/fizik/hareket/", "/plus/"].map((ad, i) => ({ ad, v: Math.round((z7 * 1.6) / (i + 1.4)) })),
       ulkeler: ["TR", "DE", "US", "NL", "AZ"].map((ad, i) => ({ ad, v: Math.round((z7 * 0.8) / (i * i * 2 + 1)) })),
@@ -61,6 +62,13 @@ function demoUygulamalar(simdi) {
       })),
       sayaclar: sira === 0 ? [{ etiket: "Günün sorusunu çözen (bugün)", deger: 48 }, { etiket: "Ligde olan", deger: 310 }] : [],
       huni: [["Kayıt olan", 1], ["Hesabı eşitlenen", 0.81], ["Puan kazanan", 0.56], ["Bir aşama bitiren", 0.31], ["Plus abonesi", 0.0205]].map(([etiket, oran]) => ({ etiket, deger: Math.round(4200 * o * oran) })),
+      olaylar: sira === 0 ? [["kayit_davet", 412], ["plus_gor", 187], ["anlamadim", 96], ["kayit_tamam", 61], ["paylas", 22]].map(([ad, v]) => ({ ad, v })) : [],
+      olayListeleri: sira === 0 ? [{ etiket: "En çok anlaşılmayan kartlar", ogeler: [["fizik.vektorler.4", 21], ["kimya.mol-kavrami.6", 17], ["fizik.bir-boyutta-hareket.3", 12], ["biyoloji.hucre.5", 9]].map(([ad, v]) => ({ ad, v })) }] : [],
+      arama: sira === 0 ? {
+        sonGun: gunler[27],
+        sorgular: [["vektör nedir", 64, 1210, 4.2], ["mol kavramı konu anlatımı", 41, 980, 6.8], ["hücre organelleri", 33, 1540, 9.1], ["bir boyutta hareket", 18, 420, 7.5]].map(([ad, v, g, s]) => ({ ad, v, alt: `${g.toLocaleString("tr-TR")} gösterim · ortalama ${s.toLocaleString("tr-TR")}. sıra` })),
+        sayfalar: [["/fizik/vektorler/", 71, 1400, 5.1], ["/kimya/mol-kavrami/", 52, 1130, 6.9], ["/", 30, 600, 3.2]].map(([ad, v, g, s]) => ({ ad, v, alt: `${g.toLocaleString("tr-TR")} gösterim · ortalama ${s.toLocaleString("tr-TR")}. sıra` })),
+      } : null,
       paraBirimi: "$", aktifGecmisGun: 30, kurulumSonGun: gunler[28],
     };
     u.notlar = notlar(u);

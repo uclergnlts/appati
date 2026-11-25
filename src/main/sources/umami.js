@@ -71,6 +71,23 @@ async function umami(ayar, gizli, { istek, simdi, onbellek }) {
     guvenli(metrik("country"), "Ülkeler"),
   ]);
 
+  // Olaylar (son 30 gün): hangi olay kaç kez gönderildi; ayarda istenirse bir olayın bir özelliğine göre döküm
+  // (ör. "anlamadim" olayının "kart" özelliği → en çok anlaşılmayan kartlar).
+  const otuzGun = { startAt: otuz, endAt: son };
+  const olaylar = await guvenli(
+    al("metrics", { ...otuzGun, type: "event", limit: 15 }).then((r) => (Array.isArray(r) ? r : []).map((s) => ({ ad: s.x, v: Number(s.y) || 0 }))), "Olaylar");
+  const olayListeleri = [];
+  for (const t of ayar.olayDokumleri || []) {
+    if (!t.olay || !t.ozellik) continue;
+    try {
+      const r = await al("event-data/values", { ...otuzGun, eventName: t.olay, propertyName: t.ozellik });
+      olayListeleri.push({ etiket: t.etiket || `${t.olay} · ${t.ozellik}`,
+        ogeler: (Array.isArray(r) ? r : []).map((s) => ({ ad: String(s.value), v: Number(s.total) || 0 })).sort((a, b) => b.v - a.v).slice(0, 12) });
+    } catch (e) {
+      uyarilar.push(`“${t.etiket || t.olay}” dökümü okunamadı (${e.message})`);
+    }
+  }
+
   // Günlük seri istenen saat diliminde gelir; tarih kısmı (YYYY-AA-GG) doğrudan gün anahtarıdır.
   const gunler = sonGunler(simdi, 30);
   const sozluk = (dizi) => Object.fromEntries((dizi || []).map((n) => [String(n.x).slice(0, 10), Number(n.y) || 0]));
@@ -90,6 +107,8 @@ async function umami(ayar, gizli, { istek, simdi, onbellek }) {
     kaynaklar: kaynak.map((k) => ({ ...k, ad: k.ad || "Doğrudan (adres yazan, yer imi)" })),
     sayfalar: sayfa,
     ulkeler: ulke,
+    olaylar,
+    olayListeleri,
     uyarilar,
   };
 }

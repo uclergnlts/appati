@@ -216,3 +216,4 @@ select { width: 100%; font: inherit; color: var(--yazi); background: var(--girdi
 select:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
 label.alan > span.ikili { display: flex; justify-content: space-between; gap: 8px; }
 label.alan > span.ikili b { color: var(--yazi); font-variant-numeric: tabular-nums; }
+.sira .alt-satir { grid-column: 1 / -1; color: var(--yazi-3); font-size: 11px; margin-top: -2px; }

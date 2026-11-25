@@ -5,6 +5,7 @@ const { gunAnahtari, sonGunler, seri } = require("./util");
 const OKUYUCU = {
   supabase: require("./sources/supabase"),
   umami: require("./sources/umami"),
+  searchconsole: require("./sources/searchconsole"),
   ganalytics: require("./sources/ganalytics"),
   revenuecat: require("./sources/revenuecat"),
   appstore: require("./sources/appstore"),
@@ -24,7 +25,7 @@ function sayaclariOku(metin) {
 function kaynakDolu(tur, ayar, gizli) {
   const tanim = KAYNAKLAR.find((k) => k.tur === tur);
   const zorunluGizli = gizliAlanlar(tur);
-  const acikAlanlar = tanim.alanlar.filter((a) => !a.gizli);
+  const acikAlanlar = tanim.alanlar.filter((a) => !a.gizli && !a.istege);
   // Yalnızca gizli alanı olan kaynakta (Umami paylaşım bağlantısı) gizli alanın dolu olması yeter.
   return zorunluGizli.every((a) => gizli && gizli[a]) && (!acikAlanlar.length || acikAlanlar.some((a) => ayar && ayar[a.ad]));
 }
@@ -62,7 +63,7 @@ function notlar(u) {
 async function uygulamayiTopla(uyg, gizliler, ctx) {
   const u = {
     id: uyg.id, ad: uyg.ad, renk: uyg.renk || "#3987e5", demo: false,
-    kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], paraBirimi: "$",
+    kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], arama: null, paraBirimi: "$",
   };
   const isler = KAYNAKLAR.map(async (tanim) => {
     const ayar = { ...((uyg.kaynaklar || {})[tanim.tur] || {}) };
@@ -74,6 +75,7 @@ async function uygulamayiTopla(uyg, gizliler, ctx) {
     }
     if (!kaynakDolu(tanim.tur, ayar, gizli)) return null;
     if (tanim.tur === "supabase") { ayar.sayaclar = sayaclariOku(ayar.sayaclar); ayar.huni = sayaclariOku(ayar.huni); }
+    if (tanim.tur === "umami") ayar.olayDokumleri = sayaclariOku(ayar.olayDokumleri).map((s) => ({ etiket: s.etiket, olay: s.tablo, ozellik: s.filtre }));
     try {
       return { tanim, veri: await OKUYUCU[tanim.tur](ayar, gizli, ctx) };
     } catch (e) {
@@ -94,6 +96,9 @@ async function uygulamayiTopla(uyg, gizliler, ctx) {
     if (s.veri.huni && s.veri.huni.length) u.huni = s.veri.huni;
     if (s.veri.paraBirimi) u.paraBirimi = s.veri.paraBirimi;
     if (s.veri.kurulumSonGun) u.kurulumSonGun = s.veri.kurulumSonGun;
+    if (s.veri.olaylar) u.olaylar = s.veri.olaylar;
+    if (s.veri.olayListeleri) u.olayListeleri = s.veri.olayListeleri;
+    if (s.veri.arama) u.arama = s.veri.arama;
   }
   u.yorumlar.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
 

@@ -14,7 +14,7 @@
     "icons": "node tools/icons.js",
     "preview": "node tools/preview.js",
     "smoke": "node tools/smoke.js",
-    "dist": "electron-builder --mac --publish never"
+    "dist": "electron-builder --mac --publish never -c.mac.identity=- -c.mac.notarize=false"
   },
   "devDependencies": {
     "electron": "^45.4.1",
@@ -34,7 +34,6 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "assets/icon.png",
-      "identity": "-",
       "target": [
         {
           "target": "dmg",
@@ -54,7 +53,8 @@
         "NSAppleEventsUsageDescription": "Appati, çentikte çalan şarkıyı ve videoyu göstermek ve oynat/duraklat yapabilmek için Spotify ile tarayıcına erişir."
       },
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "hardenedRuntime": true
     }
   }
 }

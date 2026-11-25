@@ -11,6 +11,10 @@ permissions:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      # Developer ID sertifikası depoya sır olarak eklendiyse uygulama imzalanır ve Apple'a onaylatılır;
+      # eklenmediyse eskisi gibi imzasız (ad-hoc) paketlenir. Kurulum: docs/IMZALAMA.md
+      IMZALI: ${{ secrets.MAC_CERT_P12 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,7 +23,31 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run dist
+
+      - name: Paketle (imzasız)
+        if: env.IMZALI != 'true'
+        run: npm run dist
+
+      - name: Paketle (Developer ID ile imzalı ve Apple onaylı)
+        if: env.IMZALI == 'true'
+        env:
+          CSC_LINK: ${{ secrets.MAC_CERT_P12 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_API_KEY_ID: ${{ secrets.ASC_ANAHTAR_ID }}
+          APPLE_API_ISSUER: ${{ secrets.ASC_YAYINCI_ID }}
+          ASC_ANAHTAR: ${{ secrets.ASC_ANAHTAR }}
+        run: |
+          printf '%s' "$ASC_ANAHTAR" > "$RUNNER_TEMP/asc.p8"
+          APPLE_API_KEY="$RUNNER_TEMP/asc.p8" npx electron-builder --mac --publish never -c.mac.notarize=true
+          rm -f "$RUNNER_TEMP/asc.p8"
+
+      - name: İmzayı doğrula
+        if: env.IMZALI == 'true'
+        run: |
+          UYG=$(find dist -maxdepth 2 -name "Appati.app" | head -1)
+          codesign --verify --deep --strict --verbose=2 "$UYG"
+          spctl --assess --type execute --verbose=2 "$UYG"
+
       - uses: actions/upload-artifact@v4
         with:
           name: Appati-mac
