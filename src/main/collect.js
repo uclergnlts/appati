@@ -5,7 +5,11 @@ const { gunAnahtari, sonGunler, seri } = require("./util");
 
 const OKUYUCU = {
   supabase: require("./sources/supabase"),
+  firebase: require("./sources/firebase"),
+  ozel: require("./sources/ozel"),
   umami: require("./sources/umami"),
+  plausible: require("./sources/plausible"),
+  stripe: require("./sources/stripe"),
   searchconsole: require("./sources/searchconsole"),
   youtube: require("./sources/youtube"),
   ganalytics: require("./sources/ganalytics"),
@@ -73,6 +77,7 @@ function kaynagiHazirla(tanim, kaynaklar, gizliler) {
   }
   if (!kaynakDolu(tanim.tur, ayar, gizli)) return null;
   if (tanim.tur === "supabase") { ayar.sayaclar = sayaclariOku(ayar.sayaclar); ayar.huni = sayaclariOku(ayar.huni); }
+  if (tanim.tur === "firebase") ayar.sayaclar = sayaclariOku(ayar.sayaclar);
   if (tanim.tur === "umami") ayar.huniAdimlari = sayaclariOku(ayar.huniAdimlari).map((s) => ({ etiket: s.etiket, olay: s.tablo }));
   if (tanim.tur === "umami") ayar.olayDokumleri = sayaclariOku(ayar.olayDokumleri).map((s) => ({ etiket: s.etiket, olay: s.tablo, ozellik: s.filtre }));
   return { ayar, gizli };

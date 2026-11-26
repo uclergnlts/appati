@@ -28,13 +28,21 @@ const assert = require("node:assert");
   p.on("pageerror", (e) => hatalar.push(e.message));
   p.on("console", (m) => { if (m.type() === "error") hatalar.push(m.text()); });
 
-  await p.waitForSelector("text=Şu an örnek sayılar görünüyor");
+  await p.waitForSelector("text=Appati'ye hoş geldin");
   assert.equal(await p.locator("button.kart").count(), 3, "üç örnek uygulama kartı");
   assert.equal(await p.evaluate(() => typeof window.require), "undefined", "arayüzde Node erişimi yok");
 
   await p.click('[aria-label="Ayarlar"]');
-  await p.click("text=ucler. şablonuyla ekle");
-  await p.locator("details", { hasText: "Supabase" }).locator('input[type="password"]').fill("sahte-anahtar-123");
+  await p.click(".eylem .btn.ana"); // "Uygulama ekle"
+  await p.locator('.govde input[type="text"]').first().fill("ucler.");
+  const supabase = p.locator("details", { has: p.locator("summary b", { hasText: /^Supabase$/ }) });
+  await supabase.locator("summary").click();
+  await supabase.locator('input[type="text"]').first().fill("https://ergxksjvcykgmckpsrlw.supabase.co");
+  await supabase.locator('input[type="password"]').fill("sahte-anahtar-123");
+  // "Bağlantıyı sına" kaydetmeden önce aynı hatayı gösterir.
+  await supabase.locator("text=Bağlantıyı sına").click();
+  await supabase.locator(".sina-sonuc.kotu").waitFor({ timeout: 30000 });
+  assert.match(await supabase.locator(".sina-sonuc").innerText(), /Anahtar reddedildi/);
   await p.click("text=Kaydet");
   await p.waitForSelector("text=ucler.");
   await p.waitForSelector(".serit.kotu", { timeout: 30000 });
@@ -50,7 +58,7 @@ const assert = require("node:assert");
   // Düzenleme ekranı anahtarı geri göstermez.
   await p.click('[aria-label="Ayarlar"]');
   await p.click("button.kart");
-  assert.equal(await p.locator("details", { hasText: "Supabase" }).locator('input[type="password"]').inputValue(), "");
+  assert.equal(await p.locator("details", { has: p.locator("summary b", { hasText: /^Supabase$/ }) }).locator('input[type="password"]').inputValue(), "");
   assert.ok(!(await p.content()).includes("sahte-anahtar-123"));
   await p.click("text=Uygulamayı sil");
   await p.click("text=Emin misin?");
@@ -127,7 +135,7 @@ const assert = require("node:assert");
   assert.deepEqual(cHata, [], "çentik arayüz hatası yok");
 
   // --- Dil: sistem dili İngilizce ve Arapça iken arayüz o dilde açılır; Arapça sağdan sola dizilir.
-  for (const [kod, beklenen, yon] of [["en", /sample numbers/i, "ltr"], ["ar", /[\u0600-\u06FF]{3}/, "rtl"]]) {
+  for (const [kod, beklenen, yon] of [["en", /Welcome to Appati/i, "ltr"], ["ar", /[\u0600-\u06FF]{3}/, "rtl"]]) {
     const v = fs.mkdtempSync(path.join(os.tmpdir(), "appati-duman-"));
     const u = await electron.launch({ args: [path.join(__dirname, ".."), `--lang=${kod}`, "--no-sandbox", `--user-data-dir=${v}`], executablePath: require("electron"), env: { ...process.env, APPATI_TEST: "1", APPATI_DEMO: "1" } });
     await u.firstWindow();

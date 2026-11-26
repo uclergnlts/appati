@@ -9,6 +9,10 @@ const ganalytics = require("../src/main/sources/ganalytics");
 const umami = require("../src/main/sources/umami");
 const searchconsole = require("../src/main/sources/searchconsole");
 const youtube = require("../src/main/sources/youtube");
+const stripe = require("../src/main/sources/stripe");
+const firebase = require("../src/main/sources/firebase");
+const plausible = require("../src/main/sources/plausible");
+const ozel = require("../src/main/sources/ozel");
 const revenuecat = require("../src/main/sources/revenuecat");
 const appstore = require("../src/main/sources/appstore");
 const googleplay = require("../src/main/sources/googleplay");
@@ -201,6 +205,107 @@ test("youtube: kanal çözme, rakamlar, videolar, haftalık değişim, hata çev
   await assert.rejects(youtube({ kanallar: "@a1" }, { apiKey: "k" }, ret("API key not valid. Please pass a valid API key.")), /anahtarı geçersiz/);
   await assert.rejects(youtube({ kanallar: "@a1" }, { apiKey: "k" }, ret("The request cannot be completed because you have exceeded your quota.")), /kotası doldu/);
   await assert.rejects(youtube({ kanallar: "@yok" }, { apiKey: "k" }, ctx), /bulunamadı/);
+});
+
+test("stripe: MRR aylığa çevrilir, sayfalama, para birimi, izin hatası", async () => {
+  const abonelik = (id, tutar, aralik, adet = 1, para = "usd", sayi = 1) => ({ id, currency: para, items: { data: [{ quantity: adet, price: { unit_amount: tutar, currency: para, recurring: { interval: aralik, interval_count: sayi } } }] } });
+  const { ctx, cagrilar } = sahte([
+    [/subscriptions\?.*status=active.*starting_after=s2/, () => json({ data: [abonelik("s3", 12000, "year")], has_more: false })],
+    [/subscriptions\?.*status=active/, () => json({ data: [abonelik("s1", 1000, "month", 2), abonelik("s2", 900, "month", 1, "usd", 3)], has_more: true })],
+    [/subscriptions\?.*status=trialing/, () => json({ data: [{ id: "t1" }, { id: "t2" }], has_more: false })],
+    [/balance_transactions/, () => json({ data: [{ amount: 2000, currency: "usd" }, { amount: 550, currency: "usd" }], has_more: false })],
+    [/customers/, () => json({ data: [{ id: "c1" }], has_more: false })],
+  ]);
+  const r = await stripe({}, { apiKey: "rk_live_x" }, ctx);
+  // 2×$10/ay + $9/3 ay + $120/yıl = 20 + 3 + 10 = 33
+  assert.deepEqual(r.kpi, { abone: 3, deneme: 2, mrr: 33, gelir28g: 26, yeniMusteri28g: 1 });
+  assert.equal(r.paraBirimi, "$");
+  assert.equal(cagrilar[0].secenek.headers.Authorization, "Bearer rk_live_x");
+  assert.ok(cagrilar.some((c) => /created%5Bgte%5D=\d+/.test(c.url)));
+  // Birden çok para birimi: baskın olan gösterilir ve uyarı verilir; ondalıksız para birimi 100'e bölünmez.
+  const cok = sahte([
+    [/status=active/, () => json({ data: [abonelik("a", 500000, "month", 1, "jpy"), abonelik("b", 1000, "month", 1, "eur")] })],
+    [/./, () => json({ data: [] })],
+  ]).ctx;
+  const c = await stripe({}, { apiKey: "k" }, cok);
+  assert.deepEqual([c.kpi.mrr, c.paraBirimi, c.uyarilar.length], [500000, "¥", 1]);
+  const izin = sahte([[/./, () => new Response(JSON.stringify({ error: { message: "The provided key does not have the required permissions for this endpoint." } }), { status: 403 })]]).ctx;
+  await assert.rejects(stripe({}, { apiKey: "k" }, izin), /okuma izni yok/);
+});
+
+test("firebase: kullanıcılar sayfalanır, etkinlik oturum yenilemeden, Firestore sayaçları", async () => {
+  const { privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const hesap = JSON.stringify({ client_email: "a@p.iam.gserviceaccount.com", project_id: "proje-1", private_key: privateKey.export({ type: "pkcs8", format: "pem" }) });
+  const ms = (n) => String(gunOnce(n).getTime());
+  const { ctx, cagrilar } = sahte([
+    [/oauth2/, () => json({ access_token: "tok" })],
+    [/accounts:batchGet.*nextPageToken=ikinci/, () => json({ users: [{ createdAt: ms(90), lastLoginAt: ms(40) }] })],
+    [/accounts:batchGet/, () => json({ users: [
+      { createdAt: ms(0), lastLoginAt: ms(0), lastRefreshAt: simdi.toISOString() },
+      { createdAt: ms(2), lastLoginAt: ms(20), lastRefreshAt: gunOnce(2).toISOString() }, // giriş eski ama oturum yeni: aktif
+      { createdAt: ms(9), lastLoginAt: ms(9) },
+    ], nextPageToken: "ikinci" })],
+    [/runAggregationQuery/, (_u, s) => (JSON.parse(s.body).structuredAggregationQuery.structuredQuery.from[0].collectionId === "orders" ? json([{ result: { aggregateFields: { n: { integerValue: "12" } } } }]) : new Response("{}", { status: 403 }))],
+  ]);
+  const r = await firebase({ sayaclar: sayaclariOku("Siparişler | orders\nBozuk | yok") }, { serviceAccount: hesap }, ctx);
+  assert.deepEqual(r.kpi, { kayitli: 4, yeniKayitBugun: 1, yeniKayit7g: 2, yeniKayitOnceki7g: 1, aktifBugun: 1, aktif7g: 2 });
+  assert.deepEqual(r.sayaclar, [{ etiket: "Siparişler", deger: 12 }]);
+  assert.equal(r.uyarilar.length, 1);
+  assert.ok(cagrilar.some((c) => c.url.includes("/projects/proje-1/accounts:batchGet")));
+  const kapali = sahte([[/oauth2/, () => json({ access_token: "t" })], [/batchGet/, () => new Response(JSON.stringify({ error: { message: "Identity Toolkit API has not been used in project 1 before or it is disabled." } }), { status: 403 })]]).ctx;
+  await assert.rejects(firebase({}, { serviceAccount: hesap }, kapali), /gereken API kapalı/);
+});
+
+test("plausible: bugün, hafta, günlük seri, kaynaklar; hata çevirileri", async () => {
+  const bugun = gunAnahtari(simdi);
+  const govdeler = [];
+  const { ctx } = sahte([
+    [/realtime\/visitors/, () => json(7)],
+    [/api\/v2\/query/, (_u, s) => {
+      const b = JSON.parse(s.body); govdeler.push(b);
+      const boyut = (b.dimensions || [])[0];
+      if (boyut === "time:day") return json({ results: [{ dimensions: [bugun], metrics: [14, 40] }] });
+      if (boyut === "visit:source") return json({ results: [{ dimensions: ["Google"], metrics: [20] }, { dimensions: ["Direct / None"], metrics: [9] }] });
+      if (boyut === "event:page") return json({ results: [{ dimensions: ["/"], metrics: [50] }] });
+      if (boyut === "visit:country") return json({ results: [{ dimensions: ["TR"], metrics: [60] }] });
+      if (Array.isArray(b.date_range)) return json({ results: [{ dimensions: [], metrics: [64] }] });
+      return json({ results: [{ dimensions: [], metrics: b.date_range === "day" ? [12, 40] : [80, 300] }] });
+    }],
+  ]);
+  const r = await plausible({ siteId: "https://ornek.com/" }, { apiKey: "k" }, ctx);
+  assert.deepEqual(r.kpi, { ziyaretciBugun: 12, goruntulemeBugun: 40, ziyaretci7g: 80, goruntuleme7g: 300, ziyaretciOnceki7g: 64, sitedeSimdi: 7 });
+  assert.equal(r.seri.ziyaret[29].v, 14);
+  assert.deepEqual(r.kaynaklar, [{ ad: "Google", v: 20 }, { ad: "Doğrudan (adres yazan, yer imi)", v: 9 }]);
+  assert.deepEqual(r.ulkeler, [{ ad: "TR", v: 60 }]);
+  assert.ok(govdeler.every((g) => g.site_id === "ornek.com"));
+  const ret = (durum) => sahte([[/./, () => new Response("{}", { status: durum })]]).ctx;
+  await assert.rejects(plausible({ siteId: "x.com" }, { apiKey: "k" }, ret(401)), /anahtarı geçersiz/);
+  await assert.rejects(plausible({ siteId: "x.com" }, { apiKey: "k" }, ret(404)), /bulunamadı/);
+});
+
+test("özel uç nokta: tanınan alanlar alınır, bozuk değerler atılır, adres denetlenir", async () => {
+  const { ctx, cagrilar } = sahte([
+    [/dolu/, () => json({ registeredUsers: 4200, activeToday: 177, subscribers: 86, mrr: 412.5, revenue28d: "çok", bilinmeyen: 1, currency: "€",
+      counters: [{ label: "Açık sipariş", value: 8 }, { label: "Bozuk", value: "x" }], funnel: [{ label: "Kayıt", value: 10 }, { label: "Ödeme", value: 2 }],
+      signups: [{ date: gunAnahtari(simdi), value: 9 }, { date: "bozuk", value: 1 }] })],
+    [/bos/, () => json({ merhaba: "dünya" })],
+    [/dizi/, () => json([1, 2])],
+  ]);
+  const r = await ozel({ url: "https://x.com/dolu" }, { token: "gizli" }, ctx);
+  assert.deepEqual(r.kpi, { kayitli: 4200, aktifBugun: 177, abone: 86, mrr: 412.5 });
+  assert.deepEqual(r.sayaclar, [{ etiket: "Açık sipariş", deger: 8 }]);
+  assert.deepEqual(r.huni, [{ etiket: "Kayıt", deger: 10 }, { etiket: "Ödeme", deger: 2 }]);
+  assert.equal(r.seri.kayit[29].v, 9);
+  assert.equal(r.paraBirimi, "€");
+  assert.equal(cagrilar[0].secenek.headers.Authorization, "Bearer gizli");
+  await assert.rejects(ozel({ url: "https://x.com/bos" }, {}, ctx), /tanınan bir alan yok/);
+  await assert.rejects(ozel({ url: "https://x.com/dizi" }, {}, ctx), /JSON nesnesi/);
+  await assert.rejects(ozel({ url: "http://x.com/dolu" }, {}, ctx), /https/);
+  await assert.rejects(ozel({ url: "file:///etc/passwd" }, {}, ctx), /https/);
+  // Yerel geliştirme adresi anahtarsız da kullanılabilir.
+  const yerel = sahte([[/localhost/, () => json({ activeToday: 1 })]]);
+  assert.equal((await ozel({ url: "http://localhost:3000/a" }, {}, yerel.ctx)).kpi.aktifBugun, 1);
+  assert.equal(yerel.cagrilar[0].secenek.headers.Authorization, undefined);
 });
 
 test("google analytics: raporlar, tarih aralıkları, kaynak adları, hata çevirileri", async () => {

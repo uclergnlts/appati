@@ -269,9 +269,12 @@ function genelGorunum() {
   const govde = h("div", { class: "govde" });
 
   if (d.demo) {
-    govde.append(h("div", { class: "serit bilgi" }, ikon("bilgi", "im"), h("div", null,
-      "Şu an örnek sayılar görünüyor. Kendi rakamların için ",
-      h("button", { class: "baglanti", onclick: () => git({ ad: "ayar" }) }, "ilk uygulamanı ekle"), ".")));
+    // İlk kullanım: örnek verinin ne olduğunu ve ilk adımı anlatan karşılama.
+    govde.append(h("div", { class: "kart karsilama" },
+      h("b", null, "Appati'ye hoş geldin"),
+      h("p", null, "Şu an örnek sayılar görüyorsun. Kendi uygulamanı eklemek iki dakika sürer: kullandığın servisi seç, anahtarını yapıştır, “Bağlantıyı sına”ya bas."),
+      h("div", { class: "eylem" }, h("button", { class: "btn ana", onclick: () => formAc(null) }, "İlk uygulamanı ekle")),
+      h("div", { class: "kucuk-yazi" }, "Anahtarların bu Mac'ten çıkmaz; Appati'nin sunucusu yoktur.")));
   }
   if (d.hata) govde.append(notSeridi({ tur: "uyari", metin: d.hata }));
   const gun = P.guncelleme || {};
@@ -369,9 +372,9 @@ function uygulamaGorunumu() {
 
   if (G.sekme === "kullanici") {
     govde.append(h("section", { class: "bolum" }, h("h2", null, "Yeni kayıt", h("span", null, "son 30 gün")),
-      u.seri.kayit ? grafikKarti("Günlük yeni kayıt", u.seri.kayit, "Yeni kayıt") : bagla("Supabase")));
+      u.seri.kayit ? grafikKarti("Günlük yeni kayıt", u.seri.kayit, "Yeni kayıt") : bagla("Supabase ya da Firebase")));
     govde.append(h("section", { class: "bolum" }, h("h2", null, "Site ziyareti", h("span", null, "son 30 gün")),
-      u.seri.ziyaret ? grafikKarti("Günlük ziyaret", u.seri.ziyaret, "Ziyaret") : bagla("Google Analytics")));
+      u.seri.ziyaret ? grafikKarti("Günlük ziyaret", u.seri.ziyaret, "Ziyaret") : bagla("Umami ya da Plausible")));
     if (u.seri.kurulumIos) {
       govde.append(h("section", { class: "bolum" }, h("h2", null, "iOS indirme", h("span", null, "son 30 gün")),
         grafikKarti("Günlük ilk indirme", u.seri.kurulumIos, "iOS indirme", u.kurulumSonGun ? `Apple raporları gecikmeli gelir; son rapor ${gunYaz(u.kurulumSonGun)}.` : "Apple henüz rapor vermedi.")));
@@ -428,7 +431,7 @@ function uygulamaGorunumu() {
     if (k.deneme !== undefined) kutular.push(kutu("Denemede", sayi(k.deneme)));
     if (k.yeniMusteri28g !== undefined) kutular.push(kutu("Yeni müşteri · 28 gün", sayi(k.yeniMusteri28g)));
     if (k.aktifMusteri28g !== undefined) kutular.push(kutu("Aktif müşteri · 28 gün", sayi(k.aktifMusteri28g)));
-    govde.append(h("section", { class: "bolum" }, h("h2", null, "Abonelik ve gelir"), kutular.length ? h("div", { class: "izgara iki" }, kutular) : bagla("RevenueCat")));
+    govde.append(h("section", { class: "bolum" }, h("h2", null, "Abonelik ve gelir"), kutular.length ? h("div", { class: "izgara iki" }, kutular) : bagla("RevenueCat ya da Stripe")));
   }
 
   if (G.sekme === "yorum") {
@@ -573,7 +576,7 @@ function sinaSatiri(tur, t) {
 function formGorunumu() {
   const t = G.taslak;
   const hata = h("div", { class: "hata-yazi", role: "alert", hidden: true });
-  const ad = h("input", { type: "text", value: t.ad, placeholder: "ucler.", oninput: (o) => { t.ad = o.target.value; } });
+  const ad = h("input", { type: "text", value: t.ad, placeholder: "Uygulamanın adı", oninput: (o) => { t.ad = o.target.value; } });
   const renkler = h("div", { class: "renkler", role: "group", "aria-label": "Renk" }, RENKLER.map((r) =>
     h("button", { type: "button", style: `background:${r}`, "aria-label": `Renk ${r}`, "aria-pressed": String(t.renk === r), onclick: () => { t.renk = r; ciz(); } })));
 
@@ -617,7 +620,9 @@ function formGorunumu() {
     h("div", { class: "govde" },
       h("section", { class: "bolum" }, h("h2", null, "Uygulama"),
         h("div", { class: "kart" }, h("label", { class: "alan", style: "margin-top:0" }, h("span", null, "Ad"), ad), h("label", { class: "alan" }, h("span", null, "Renk")), renkler)),
-      h("section", { class: "bolum" }, h("h2", null, "Veri kaynakları"), kaynakKartlari),
+      // Kaynaklar türüne göre gruplanır; her grupta birbirinin yerine geçebilen seçenekler durur.
+      [...new Set(P.katalog.map((k) => k.grup))].map((grup) => h("section", { class: "bolum" }, h("h2", null, grup, ["Kullanıcılar", "Site trafiği", "Gelir"].includes(grup) ? h("span", null, "kullandığını seç") : null),
+        P.katalog.map((k, i) => (k.grup === grup ? kaynakKartlari[i] : null)))),
       hata,
       h("div", { class: "eylem" }, h("button", { class: "btn ana", onclick: kaydet }, "Kaydet"), h("button", { class: "btn", onclick: () => git({ ad: "ayar" }) }, "Vazgeç"), t.id ? silDugme : null)),
   ];

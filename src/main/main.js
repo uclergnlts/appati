@@ -3,7 +3,7 @@ const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, session, a
 const path = require("node:path");
 const fs = require("node:fs");
 const { depo } = require("./store");
-const { KAYNAKLAR, SABLONLAR, sablonlaTamamla } = require("./katalog");
+const { KAYNAKLAR, sablonlaTamamla } = require("./katalog");
 const { uygulamayiTopla, ozetle, kaynakSina } = require("./collect");
 const { demoUygulamalar } = require("./demo");
 const { istekci } = require("./util");
@@ -263,7 +263,7 @@ function dilKur() {
 }
 
 function ipcKur() {
-  const paket = () => ({ dil: dilPaketi(), guncelleme: guncelle ? guncelle.durum() : { durum: "kapali" }, gunluk: gunlukYolu(), durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion(), vurgu: vurguRengi() });
+  const paket = () => ({ dil: dilPaketi(), guncelleme: guncelle ? guncelle.durum() : { durum: "kapali" }, gunluk: gunlukYolu(), durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: [], surum: app.getVersion(), vurgu: vurguRengi() });
   ipcMain.handle("baslangic", paket);
   ipcMain.handle("yenile", async () => { kayit.kilidiSifirla(); await yenile(); return paket(); });
   ipcMain.handle("uygulama:kaydet", async (_o, gelen) => { kayit.uygulamaKaydet(gelen); yenile(); return paket(); });

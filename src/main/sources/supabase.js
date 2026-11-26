@@ -61,9 +61,10 @@ module.exports = async function supabase(ayar, gizli, { istek, simdi }) {
     sonuc.kpi.aktif7g = girisler.filter((d) => d >= yediGun).length;
   }
 
+  // Filtre yer tutucuları: {simdi} / {now} şu anki zaman, {bugun} / {today} bugünün tarihi.
   const doldur = (f) => String(f || "")
-    .replaceAll("{simdi}", encodeURIComponent(simdi.toISOString()))
-    .replaceAll("{bugun}", gunAnahtari(simdi));
+    .replaceAll("{simdi}", encodeURIComponent(simdi.toISOString())).replaceAll("{now}", encodeURIComponent(simdi.toISOString()))
+    .replaceAll("{bugun}", gunAnahtari(simdi)).replaceAll("{today}", gunAnahtari(simdi));
 
   // Huni: ilk adım kayıtlı kullanıcı; bir adım okunamazsa huni yarım gösterilmez.
   const adimlar = (ayar.huni || []).filter((a) => a.tablo);

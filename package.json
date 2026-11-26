@@ -1,12 +1,12 @@
 {
   "name": "appati",
   "productName": "Appati",
-  "version": "0.3.0",
-  "description": "Bütün uygulamalarının rakamları, Mac'inin kenarında tek panelde.",
+  "version": "0.4.0",
+  "description": "All your apps' numbers in one panel at the edge of your Mac.",
   "main": "src/main/main.js",
   "private": true,
-  "license": "UNLICENSED",
-  "author": "Üçler",
+  "license": "MIT",
+  "author": "Üçler Gönültaş",
   "scripts": {
     "start": "electron .",
     "demo": "APPATI_DEMO=1 electron .",

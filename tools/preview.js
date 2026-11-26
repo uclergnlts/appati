@@ -47,7 +47,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   for (const sekme of ["ozet", "kullanici", "arama", "youtube", "gelir", "yorum", "kaynak"]) await cek(`3-${sekme}`, { ad: "uyg", id: "demo-1", sekme });
   await cek("3-ozet-alt", { ad: "uyg", id: "demo-1", sekme: "ozet" }, (s) => s.evaluate(() => { document.querySelector(".govde").scrollTop = 9999; }));
   await cek("4-ayarlar", { ad: "ayar" });
-  await cek("5-form", { ad: "ayar" }, async (s) => { await s.click(".eylem .btn:not(.ana)"); /* şablon düğmesi; metni dile göre değişir */ await s.waitForSelector("details"); });
+  await cek("5-form", { ad: "ayar" }, async (s) => { await s.click(".eylem .btn.ana"); await s.waitForSelector("details"); await s.click("details summary"); });
   await cek("6-ipucu", { ad: "uyg", id: "demo-1", sekme: "kullanici" }, async (s) => { await s.mouse.move(250, 200); });
   await cek("7-acik-genel", { ad: "genel" }, null, "light");
   await cek("7-acik-kullanici", { ad: "uyg", id: "demo-1", sekme: "kullanici" }, null, "light");

@@ -243,3 +243,9 @@ label.alan > span.ikili b { color: var(--yazi); font-variant-numeric: tabular-nu
 .sina-sonuc .im { width: 14px; height: 14px; flex: none; margin-top: 1px; }
 .sina-sonuc.iyi .im { color: var(--iyi); } .sina-sonuc.kotu .im { color: var(--kotu); }
 .sina-sonuc small { display: block; color: var(--yazi-3); margin-top: 2px; }
+
+/* Karşılama kartı */
+.karsilama b { font-size: 15px; font-weight: 650; }
+.karsilama p { margin: 6px 0 0; color: var(--yazi-2); }
+.karsilama .eylem { margin-top: 12px; }
+.karsilama .kucuk-yazi { margin-top: 10px; }
