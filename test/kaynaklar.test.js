@@ -12,7 +12,7 @@ const youtube = require("../src/main/sources/youtube");
 const revenuecat = require("../src/main/sources/revenuecat");
 const appstore = require("../src/main/sources/appstore");
 const googleplay = require("../src/main/sources/googleplay");
-const { uygulamayiTopla, ozetle, sayaclariOku } = require("../src/main/collect");
+const { uygulamayiTopla, ozetle, sayaclariOku, kaynakSina } = require("../src/main/collect");
 const { demoUygulamalar } = require("../src/main/demo");
 
 const simdi = new Date(2026, 10, 24, 15, 0, 0);
@@ -323,6 +323,25 @@ test("google analytics, Google Play'e girilen servis hesabını paylaşır", asy
   // Google Play de yoksa Analytics sessizce atlanır.
   const v = await uygulamayiTopla({ id: "g2", ad: "y", kaynaklar: { ganalytics: { propertyId: "123" } } }, {}, ctx);
   assert.deepEqual(v.kaynaklar, []);
+});
+
+test("bağlantı sınama: taslak değerle dener, kayıtlı anahtarı kullanır, önbelleğe yazmaz", async () => {
+  const { ctx, cagrilar } = sahte([[/metrics\/overview/, (_u, s) => (s.headers.Authorization === "Bearer sk_dogru" ? json({ metrics: [] }) : new Response("no", { status: 401 }))]]);
+  // Taslakta gizli alan boş: kayıtlı anahtar kullanılır.
+  assert.deepEqual(await kaynakSina("revenuecat", { kaynaklar: { revenuecat: { projectId: "p" } }, gizli: { revenuecat: { apiKey: "" } } }, { revenuecat: { apiKey: "sk_dogru" } }, ctx), { tamam: true, mesaj: "Bağlantı çalışıyor.", uyarilar: [] });
+  // Taslaktaki yeni anahtar kayıtlı olanın önüne geçer.
+  const r = await kaynakSina("revenuecat", { kaynaklar: { revenuecat: { projectId: "p" } }, gizli: { revenuecat: { apiKey: "sk_yanlis" } } }, { revenuecat: { apiKey: "sk_dogru" } }, ctx);
+  assert.deepEqual([r.tamam, /Anahtar reddedildi/.test(r.mesaj)], [false, true]);
+  assert.equal(cagrilar.at(-1).secenek.headers.Authorization, "Bearer sk_yanlis");
+  // Eksik alan ve bilinmeyen kaynak istek atmadan döner.
+  const once = cagrilar.length;
+  assert.equal((await kaynakSina("revenuecat", { kaynaklar: {}, gizli: {} }, {}, ctx)).mesaj, "Önce bu kaynağın alanlarını doldur.");
+  assert.equal((await kaynakSina("yok", {}, {}, ctx)).tamam, false);
+  assert.equal(cagrilar.length, once);
+  // Gerçek önbelleğe dokunmaz (Umami bölge kaydı gibi).
+  const u = sahte([[/\/share\//, () => json({ websiteId: "s", token: "t" })], [/./, () => json({ visitors: 1, pageviews: 1, pageviews_: [] })]]);
+  await kaynakSina("umami", { kaynaklar: {}, gizli: { umami: { paylasim: "AbC123xyz" } } }, {}, u.ctx);
+  assert.deepEqual(u.ctx.onbellek.m, {});
 });
 
 test("örnek veri eksiksiz ve gün içinde sabit", () => {

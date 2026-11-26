@@ -11,7 +11,7 @@ const assert = require("node:assert");
   const cikti = path.join(__dirname, "..", "preview");
   fs.mkdirSync(cikti, { recursive: true });
   const uyg = await electron.launch({
-    args: [path.join(__dirname, ".."), "--no-sandbox", "--password-store=basic", `--user-data-dir=${veri}`],
+    args: [path.join(__dirname, ".."), "--lang=tr", "--no-sandbox", "--password-store=basic", `--user-data-dir=${veri}`],
     executablePath: require("electron"),
     env: { ...process.env, APPATI_TEST: "1" },
   });
@@ -77,7 +77,7 @@ const assert = require("node:assert");
   // --- Çentik: örnek veriyle (çalan şarkı dahil) aç, fareyi sahte konumlarla gezdir.
   const veri2 = fs.mkdtempSync(path.join(os.tmpdir(), "appati-duman-"));
   const uyg2 = await electron.launch({
-    args: [path.join(__dirname, ".."), "--no-sandbox", `--user-data-dir=${veri2}`],
+    args: [path.join(__dirname, ".."), "--lang=tr", "--no-sandbox", `--user-data-dir=${veri2}`],
     executablePath: require("electron"), env: { ...process.env, APPATI_TEST: "1", APPATI_DEMO: "1" },
   });
   await uyg2.firstWindow();
@@ -125,5 +125,21 @@ const assert = require("node:assert");
   assert.equal((await sinir()).gorunur, false, "kapalıyken fare açmaz");
   await uyg2.close();
   assert.deepEqual(cHata, [], "çentik arayüz hatası yok");
+
+  // --- Dil: sistem dili İngilizce ve Arapça iken arayüz o dilde açılır; Arapça sağdan sola dizilir.
+  for (const [kod, beklenen, yon] of [["en", /sample numbers/i, "ltr"], ["ar", /[\u0600-\u06FF]{3}/, "rtl"]]) {
+    const v = fs.mkdtempSync(path.join(os.tmpdir(), "appati-duman-"));
+    const u = await electron.launch({ args: [path.join(__dirname, ".."), `--lang=${kod}`, "--no-sandbox", `--user-data-dir=${v}`], executablePath: require("electron"), env: { ...process.env, APPATI_TEST: "1", APPATI_DEMO: "1" } });
+    await u.firstWindow();
+    let w = null;
+    for (let i = 0; i < 50 && !w; i++) { w = u.windows().find((x) => x.url().endsWith("index.html")) || null; if (!w) await new Promise((r) => setTimeout(r, 100)); }
+    await w.waitForSelector("button.kart");
+    assert.match(await w.evaluate(() => document.body.innerText), beklenen, `${kod}: arayüz çevrildi`);
+    assert.equal(await w.evaluate(() => document.documentElement.dir), yon);
+    // Sözlükte karşılığı olmayan arayüz metni kalmamalı (örnek içerik ve adlar hariç: Türkçeye özgü harf içerenler aranır).
+    const kalan = (await w.evaluate(() => [...(window.__EKSIK__ || [])])).filter((m) => /[çğışöüÇĞİŞÖÜ]/.test(m));
+    assert.deepEqual(kalan, [], `${kod}: çevrilmemiş metin`);
+    await u.close();
+  }
   console.log("Duman testi geçti. Supabase notu:", not.replace(/\s+/g, " "));
 })().catch((e) => { console.error(e); process.exit(1); });

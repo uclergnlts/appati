@@ -2,6 +2,7 @@
 // izlenme, beğeni, yorum sayıları. YouTube Data API v3 anahtarı gerekir (Google Cloud > Credentials > API key);
 // kanal sahibi olarak giriş gerekmez. İzlenme süresi ve trafik kaynakları gibi ayrıntılar bu API'de yoktur.
 // Abone ve görüntülemenin haftalık değişimi için her gün görülen değer saklanır.
+const { yerel } = require("../dil");
 const { gunAnahtari, GUN } = require("../util");
 
 const API = "https://www.googleapis.com/youtube/v3";
@@ -28,7 +29,7 @@ function hataCevir(e, ne) {
   return new Error(`${ne}: ${m}`);
 }
 
-const sayiYaz = (n) => Math.round(Number(n) || 0).toLocaleString("tr-TR");
+const sayiYaz = (n) => Math.round(Number(n) || 0).toLocaleString(yerel());
 
 module.exports = async function youtube(ayar, gizli, { istek, simdi, onbellek }) {
   if (!gizli.apiKey) throw new Error("API anahtarı eksik");
@@ -71,7 +72,7 @@ module.exports = async function youtube(ayar, gizli, { istek, simdi, onbellek })
             .map((o) => ({
               ad: o.snippet.title, v: Number(o.statistics.viewCount) || 0,
               alt: [`${sayiYaz(o.statistics.likeCount)} beğeni`, `${sayiYaz(o.statistics.commentCount)} yorum`,
-                new Date(o.snippet.publishedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })].join(" · "),
+                new Date(o.snippet.publishedAt).toLocaleDateString(yerel(), { day: "numeric", month: "short" })].join(" · "),
             }));
         }
       } catch (e) {

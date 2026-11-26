@@ -19,7 +19,7 @@ body.onizleme { background: linear-gradient(160deg, #e9a66b, #c95f7c 40%, #3d6fb
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 button:focus-visible { outline: 2px solid #6da7ec; outline-offset: 2px; }
 
-.rakamlar { flex: 1; min-width: 0; display: flex; gap: 14px; text-align: left; border-radius: 12px; padding: 6px 8px; }
+.rakamlar { flex: 1; min-width: 0; display: flex; gap: 14px; text-align: start; border-radius: 12px; padding: 6px 8px; }
 .rakamlar:hover { background: rgba(255, 255, 255, 0.09); }
 .rakam { min-width: 0; flex: 1; }
 .rakam b { display: block; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -43,7 +43,7 @@ button:focus-visible { outline: 2px solid #6da7ec; outline-offset: 2px; }
 .ac:hover { background: rgba(255, 255, 255, 0.2); }
 .acik-degil { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .acik-degil span { color: #98978f; width: 100%; font-size: 11.5px; }
-.ornek { position: absolute; top: 12px; left: 26px; font-size: 10.5px; color: #98978f; letter-spacing: 0.04em; text-transform: uppercase; }
+.ornek { position: absolute; top: 12px; inset-inline-start: 26px; font-size: 10.5px; color: #98978f; letter-spacing: 0.04em; text-transform: uppercase; }
 
 /* Küçük ada: çalarken çentiğin iki yanında görünen "kulaklar". Çentiğin devamı gibi durması için üstü düz ve
    ekranın tepesine bitişik, alt köşeleri çentik gibi küçük yarıçaplı, üst köşelerinde içbükey "omuz" var. */
@@ -73,3 +73,7 @@ button:focus-visible { outline: 2px solid #6da7ec; outline-offset: 2px; }
   .dalga i { animation: none; }
   .dalga i:nth-child(odd) { transform: scaleY(0.45); } .dalga i:nth-child(even) { transform: scaleY(0.9); }
 }
+
+/* Sağdan sola dillerde oynatma düğmeleri ve küçük şerit soldan sağa kalır (medya kontrollerinin evrensel sırası). */
+.tuslar, #kucuk { direction: ltr; }
+[dir="rtl"] .rakam b { direction: ltr; unicode-bidi: isolate; text-align: right; }

@@ -62,6 +62,43 @@ function notlar(u) {
   return n;
 }
 
+// Bir kaynağın okuyucuya verilecek ayarını ve gizli alanlarını hazırlar; kaynak doldurulmamışsa null döner.
+function kaynagiHazirla(tanim, kaynaklar, gizliler) {
+  const ayar = { ...((kaynaklar || {})[tanim.tur] || {}) };
+  let gizli = (gizliler || {})[tanim.tur] || {};
+  // Bir kaynağın gizli alanı boşsa ve "yedek" tanımlıysa başka kaynağınki kullanılır
+  // (Google Analytics, Google Play'e girilen servis hesabını paylaşabilir).
+  for (const a of tanim.alanlar) {
+    if (a.gizli && a.yedek && !gizli[a.ad] && (gizliler || {})[a.yedek] && gizliler[a.yedek][a.ad]) gizli = { ...gizli, [a.ad]: gizliler[a.yedek][a.ad] };
+  }
+  if (!kaynakDolu(tanim.tur, ayar, gizli)) return null;
+  if (tanim.tur === "supabase") { ayar.sayaclar = sayaclariOku(ayar.sayaclar); ayar.huni = sayaclariOku(ayar.huni); }
+  if (tanim.tur === "umami") ayar.huniAdimlari = sayaclariOku(ayar.huniAdimlari).map((s) => ({ etiket: s.etiket, olay: s.tablo }));
+  if (tanim.tur === "umami") ayar.olayDokumleri = sayaclariOku(ayar.olayDokumleri).map((s) => ({ etiket: s.etiket, olay: s.tablo, ozellik: s.filtre }));
+  return { ayar, gizli };
+}
+
+// Ayar ekranındaki "Bağlantıyı sına": tek bir kaynağı, henüz kaydedilmemiş taslak değerlerle dener.
+// taslak: { kaynaklar, gizli } (gizli alanlar boşsa kayıtlı olanlar kullanılır). Önbelleğe ve geçmişe yazmaz.
+async function kaynakSina(tur, taslak, kayitliGizliler, ctx) {
+  const tanim = KAYNAKLAR.find((k) => k.tur === tur);
+  if (!tanim) return { tamam: false, mesaj: "Bilinmeyen kaynak" };
+  const gizliler = {};
+  for (const k of KAYNAKLAR) {
+    gizliler[k.tur] = { ...((kayitliGizliler || {})[k.tur] || {}) };
+    for (const [alan, deger] of Object.entries(((taslak.gizli || {})[k.tur]) || {})) if (typeof deger === "string" && deger.trim()) gizliler[k.tur][alan] = deger.trim();
+  }
+  const hazir = kaynagiHazirla(tanim, sablonlaTamamla({ ad: taslak.ad, kaynaklar: taslak.kaynaklar || {} }).kaynaklar, gizliler);
+  if (!hazir) return { tamam: false, mesaj: "Önce bu kaynağın alanlarını doldur." };
+  const gecici = {};
+  try {
+    const veri = await OKUYUCU[tur](hazir.ayar, hazir.gizli, { ...ctx, onbellek: { al: (a) => gecici[a], yaz: (a, d) => { gecici[a] = d; }, kaydet() {} } });
+    return { tamam: true, mesaj: "Bağlantı çalışıyor.", uyarilar: veri.uyarilar || [] };
+  } catch (e) {
+    return { tamam: false, mesaj: e.message || String(e) };
+  }
+}
+
 async function uygulamayiTopla(kayitliUyg, gizliler, ctx) {
   const uyg = sablonlaTamamla(kayitliUyg);
   const u = {
@@ -69,17 +106,9 @@ async function uygulamayiTopla(kayitliUyg, gizliler, ctx) {
     kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], siteHunisi: [], haftalik: [], arama: null, youtube: null, paraBirimi: "$",
   };
   const isler = KAYNAKLAR.map(async (tanim) => {
-    const ayar = { ...((uyg.kaynaklar || {})[tanim.tur] || {}) };
-    let gizli = (gizliler || {})[tanim.tur] || {};
-    // Bir kaynağın gizli alanı boşsa ve "yedek" tanımlıysa başka kaynağınki kullanılır
-    // (Google Analytics, Google Play'e girilen servis hesabını paylaşabilir).
-    for (const a of tanim.alanlar) {
-      if (a.gizli && a.yedek && !gizli[a.ad] && (gizliler || {})[a.yedek] && gizliler[a.yedek][a.ad]) gizli = { ...gizli, [a.ad]: gizliler[a.yedek][a.ad] };
-    }
-    if (!kaynakDolu(tanim.tur, ayar, gizli)) return null;
-    if (tanim.tur === "supabase") { ayar.sayaclar = sayaclariOku(ayar.sayaclar); ayar.huni = sayaclariOku(ayar.huni); }
-    if (tanim.tur === "umami") ayar.huniAdimlari = sayaclariOku(ayar.huniAdimlari).map((s) => ({ etiket: s.etiket, olay: s.tablo }));
-    if (tanim.tur === "umami") ayar.olayDokumleri = sayaclariOku(ayar.olayDokumleri).map((s) => ({ etiket: s.etiket, olay: s.tablo, ozellik: s.filtre }));
+    const hazir = kaynagiHazirla(tanim, uyg.kaynaklar, gizliler);
+    if (!hazir) return null;
+    const { ayar, gizli } = hazir;
     try {
       return { tanim, veri: await OKUYUCU[tanim.tur](ayar, gizli, ctx) };
     } catch (e) {
@@ -151,4 +180,4 @@ function ozetle(uygulamalar) {
   };
 }
 
-module.exports = { uygulamayiTopla, ozetle, sayaclariOku, kaynakDolu, notlar };
+module.exports = { uygulamayiTopla, ozetle, sayaclariOku, kaynakDolu, notlar, kaynakSina };

@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("appati", {
   baslangic: () => ipcRenderer.invoke("baslangic"),
   yenile: () => ipcRenderer.invoke("yenile"),
   uygulamaKaydet: (u) => ipcRenderer.invoke("uygulama:kaydet", u),
+  kaynakSina: (tur, taslak) => ipcRenderer.invoke("kaynak:sina", tur, taslak),
   uygulamaSil: (id) => ipcRenderer.invoke("uygulama:sil", id),
   genelKaydet: (g) => ipcRenderer.invoke("genel:kaydet", g),
   gizle: () => ipcRenderer.invoke("gizle"),
@@ -19,6 +20,7 @@ contextBridge.exposeInMainWorld("appati", {
   guncellemeDinle: (fn) => ipcRenderer.on("guncelleme", (_o, d) => fn(d)),
   guncellemeDenetle: () => ipcRenderer.invoke("guncelle:denetle"),
   guncellemeKur: () => ipcRenderer.invoke("guncelle:kur"),
+  dilDinle: (fn) => ipcRenderer.on("dil", (_o, d) => fn(d)),
   gitDinle: (fn) => ipcRenderer.on("git", (_o, g) => fn(g)),
   vurguDinle: (fn) => ipcRenderer.on("vurgu", (_o, r) => fn(r)),
 });

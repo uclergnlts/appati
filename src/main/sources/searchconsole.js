@@ -2,6 +2,7 @@
 // Gerekli: Search Console'daki mülk (ör. "sc-domain:ucler.app" ya da "https://ucler.app/") ve servis hesabı JSON'u.
 // Servis hesabının e-postası Search Console > Ayarlar > Kullanıcılar ve izinler'e eklenmiş, Cloud projesinde
 // "Google Search Console API" açılmış olmalı. Google bu veriyi 2-3 gün gecikmeyle verir.
+const { yerel } = require("../dil");
 const { gunAnahtari, GUN } = require("../util");
 const { hesapCoz, googleJeton } = require("./google");
 
@@ -51,7 +52,7 @@ module.exports = async function searchconsole(ayar, gizli, ctx) {
   const son7 = gunler.slice(-7), onceki7 = gunler.slice(-14, -7);
   const liste = (satirlar, cevir = (x) => x) => satirlar.map((s) => ({
     ad: cevir(s.keys[0]), v: s.clicks || 0,
-    alt: `${Math.round(s.impressions || 0).toLocaleString("tr-TR")} gösterim · ortalama ${(s.position || 0).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}. sıra`,
+    alt: `${Math.round(s.impressions || 0).toLocaleString(yerel())} gösterim · ortalama ${(s.position || 0).toLocaleString(yerel(), { maximumFractionDigits: 1 })}. sıra`,
   }));
   const yol = (u) => { try { const a = new URL(u); return a.pathname + a.search; } catch { return u; } };
 

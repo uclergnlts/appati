@@ -5,7 +5,8 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { KAYNAKLAR, gizliAlanlar } = require("./katalog");
 
-const VARSAYILAN = { uygulamalar: [], genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, otoGuncelle: true } };
+const VARSAYILAN = { uygulamalar: [], genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, otoGuncelle: true, dil: "sistem" } };
+const DIL_SECENEK = ["sistem", "tr", "en", "es", "ar"];
 const CUBUK = ["aktifBugun", "ziyaretciBugun", "yeniKayitBugun", "mrr", "yok"];
 const TEMALAR = ["sistem", "acik", "koyu"];
 
@@ -125,6 +126,15 @@ function depo(klasor, safeStorage) {
       return id;
     },
 
+    // Kayıtlı uygulamaları bir işlevden geçirip değişenleri diske yazar (ör. şablondan eksik alanları tamamlama).
+    uygulamalariDonustur(donustur) {
+      const yeni = ayar.uygulamalar.map((u) => donustur(u));
+      if (JSON.stringify(yeni) === JSON.stringify(ayar.uygulamalar)) return false;
+      ayar.uygulamalar = yeni;
+      yaz(yol("ayar.json"), JSON.stringify(ayar, null, 2));
+      return true;
+    },
+
     uygulamaSil(id) {
       if (gizliDosyaVar()) {
         const g = structuredClone(yazilabilir());
@@ -146,6 +156,7 @@ function depo(klasor, safeStorage) {
         centikEn: sayi("centikEn", 200, 480), centikBoy: sayi("centikBoy", 22, 48), centikSaydamlik: sayi("centikSaydamlik", 0, 80),
         sabit: mantik("sabit"), acilistaBaslat: mantik("acilistaBaslat"), bildirim: mantik("bildirim"), centik: mantik("centik"), medya: mantik("medya"), otoGuncelle: mantik("otoGuncelle"),
         tema: TEMALAR.includes(yeni.tema) ? yeni.tema : g.tema,
+        dil: DIL_SECENEK.includes(yeni.dil) ? yeni.dil : g.dil,
         cubukSayi: CUBUK.includes(yeni.cubukSayi) ? yeni.cubukSayi : g.cubukSayi,
       };
       yaz(yol("ayar.json"), JSON.stringify(ayar, null, 2));

@@ -1,10 +1,11 @@
 // Haftalık özet: son 7 günün rakamları ve bir önceki haftaya göre değişim.
 // Ziyaretçi, kayıt, arama ve indirme için kaynaklar önceki haftayı zaten verir. Abone, MRR ve kayıtlı kullanıcı
 // için geçmiş hiçbir kaynakta yoktur; her gün gördüğümüz değer saklanır ve 7 gün önceki değerle karşılaştırılır.
+const { yerel } = require("./dil");
 const { gunAnahtari, GUN } = require("./util");
 
 const SAKLANAN = ["abone", "mrr", "kayitli"];
-const sayi = (n) => Math.round(n).toLocaleString("tr-TR");
+const sayi = (n) => Math.round(n).toLocaleString(yerel());
 
 // ISO hafta anahtarı: "2026-W48" (hafta pazartesi başlar).
 function haftaAnahtari(tarih) {
@@ -79,10 +80,10 @@ function haftalikSatirlar(u, gecmis, simdi) {
 }
 
 // Pazartesi bildirimi için tek satırlık özet: "ziyaretçi 1.937 (▲ %8), kayıt 142 (▼ %3), abone 86 (+2)"
-function bildirimMetni(u) {
+function bildirimMetni(u, c = (m) => m) {
   const ok = (s) => (s.yon === "yukari" ? "▲ " : s.yon === "asagi" ? "▼ " : "");
   return (u.haftalik || []).filter((s) => !s.metin).slice(0, 4)
-    .map((s) => `${s.etiket.toLocaleLowerCase("tr-TR")} ${s.deger}${s.degisim ? ` (${s.degisim.startsWith("%") ? ok(s) : ""}${s.degisim})` : ""}`).join(", ");
+    .map((s) => `${c(s.etiket)} ${s.deger}${s.degisim ? ` (${s.degisim.startsWith("%") ? ok(s) : ""}${c(s.degisim)})` : ""}`).join(" · ");
 }
 
 module.exports = { haftaAnahtari, gunlukKaydet, haftaOnce, haftalikSatirlar, bildirimMetni };

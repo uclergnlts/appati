@@ -8,14 +8,23 @@ const { ozetle } = require("../src/main/collect");
 const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
 
 (async () => {
+  // Örnek verideki sayı ve tarihler de seçilen dille biçimlensin diye dil, veri üretilmeden önce kurulur.
+  require("../src/main/dil").kur(process.env.PREVIEW_DIL || "tr", process.env.PREVIEW_DIL || "tr");
   const simdi = new Date();
   const uygulamalar = demoUygulamalar(simdi);
+  // PREVIEW_DIL=en|es|ar verilirse arayüz o dilde çizilir ve sözlükte karşılığı olmayan metinler listelenir.
+  const dilKod = process.env.PREVIEW_DIL || "tr";
+  const { DILLER } = require("../src/ortak/ceviri");
+  const sozluk = dilKod === "tr" ? {} : JSON.parse(fs.readFileSync(path.join(__dirname, "..", "src", "ortak", "diller", `${dilKod}.json`), "utf8"));
+  const dilPaketi = { kod: dilKod, yerel: DILLER[dilKod].yerel, yon: DILLER[dilKod].yon, sozluk };
+  const eksikler = new Set();
   const paket = {
+    dil: dilPaketi,
     durum: { uygulamalar, ozet: ozetle(uygulamalar), zaman: simdi.toISOString(), demo: true, yukleniyor: false },
     ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, otoGuncelle: true }, uygulamalar: [] },
     katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: "önizleme", vurgu: null, guncelleme: { durum: "hazir", surum: "0.2.1" },
   };
-  const cikti = path.join(__dirname, "..", "preview");
+  const cikti = path.join(__dirname, "..", "preview", dilKod === "tr" ? "" : dilKod);
   fs.mkdirSync(cikti, { recursive: true });
   const tarayici = await chromium.launch();
   const hatalar = [];
@@ -29,6 +38,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
     if (sonra) await sonra(sayfa);
     const yazi = await sayfa.evaluate(() => document.body.innerText);
     if (/\b(null|undefined|NaN)\b/.test(yazi)) hatalar.push(`${ad}: arayüzde ham değer görünüyor`);
+    for (const m of await sayfa.evaluate(() => [...(window.__EKSIK__ || [])])) eksikler.add(m);
     await sayfa.screenshot({ path: path.join(cikti, `${ad}.png`) });
     await sayfa.close();
   };
@@ -37,7 +47,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   for (const sekme of ["ozet", "kullanici", "arama", "youtube", "gelir", "yorum", "kaynak"]) await cek(`3-${sekme}`, { ad: "uyg", id: "demo-1", sekme });
   await cek("3-ozet-alt", { ad: "uyg", id: "demo-1", sekme: "ozet" }, (s) => s.evaluate(() => { document.querySelector(".govde").scrollTop = 9999; }));
   await cek("4-ayarlar", { ad: "ayar" });
-  await cek("5-form", { ad: "ayar" }, async (s) => { await s.click("text=ucler. şablonuyla ekle"); await s.waitForSelector("details"); });
+  await cek("5-form", { ad: "ayar" }, async (s) => { await s.click(".eylem .btn:not(.ana)"); /* şablon düğmesi; metni dile göre değişir */ await s.waitForSelector("details"); });
   await cek("6-ipucu", { ad: "uyg", id: "demo-1", sekme: "kullanici" }, async (s) => { await s.mouse.move(250, 200); });
   await cek("7-acik-genel", { ad: "genel" }, null, "light");
   await cek("7-acik-kullanici", { ad: "uyg", id: "demo-1", sekme: "kullanici" }, null, "light");
@@ -68,7 +78,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
     const sayfa = await tarayici.newPage({ viewport: { width: 540, height: 150 }, deviceScaleFactor: 2 });
     sayfa.on("pageerror", (e) => hatalar.push(`${ad}: ${e.message}`));
     sayfa.on("console", (m) => { if (m.type() === "error") hatalar.push(`${ad}: ${m.text()}`); });
-    await sayfa.addInitScript((v) => { window.__CENTIK__ = v; }, veri);
+    await sayfa.addInitScript(([v, d]) => { window.__CENTIK__ = v; window.__DIL__ = d; }, [veri, dilPaketi]);
     await sayfa.goto(`file://${path.join(__dirname, "..", "src", "renderer", "centik.html")}`);
     await sayfa.waitForTimeout(400);
     const yazi = await sayfa.evaluate(() => document.body.innerText);
@@ -85,6 +95,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   await centik("8-centik-medyasiz", { acik: true, kb: 38, kucuk: null, rakamlar, demo: false, medyaAcik: false, medya: null });
   await centik("8-centik-bos", { acik: true, kb: 38, kucuk: null, rakamlar, demo: true, medyaAcik: true, medya: null });
   await tarayici.close();
+  if (dilKod !== "tr") fs.writeFileSync(path.join(cikti, `eksik-${dilKod}.json`), JSON.stringify([...eksikler].sort(), null, 1));
   if (hatalar.length) { console.error(hatalar.join("\n")); process.exit(1); }
   console.log("Sayfa hatası yok. Görüntüler:", cikti);
 })();

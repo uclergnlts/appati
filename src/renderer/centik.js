@@ -1,7 +1,7 @@
 "use strict";
 // Çentik adası: bugünün rakamları ve çalan şarkı / video. Ana süreç fare çentiğe gelince { acik: true, ... } gönderir.
 
-const kopru = window.appati || { centikDinle() {}, paneliAc() {}, medyaKomut: async () => ({ tamam: true }), medyaAc() {} };
+const kopru = window.appati || { centikDinle() {}, dilDinle() {}, baslangic: async () => ({ dil: window.__DIL__ || null }), paneliAc() {}, medyaKomut: async () => ({ tamam: true }), medyaAc() {} };
 if (!window.appati) document.body.classList.add("onizleme");
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -9,14 +9,27 @@ const ada = document.getElementById("ada");
 const kucuk = document.getElementById("kucuk");
 let ipucu = null; // { metin, bitis }
 let sonVeri = null;
+let kucukImza = null;
+
+// Çeviri: panelle aynı katman (src/ortak/ceviri.js). Dil ana süreçten alınır ve değişince yeniden uygulanır.
+let c = (metin) => metin;
+function dilUygula(d) {
+  if (!d) return;
+  c = d.kod === "tr" ? (m) => m : window.Ceviri.cevirici(d.sozluk);
+  document.documentElement.lang = d.kod;
+  document.documentElement.dir = d.yon;
+  if (sonVeri) { kucukImza = undefined; ciz(sonVeri); }
+}
+const ham = (metin) => document.createTextNode(String(metin ?? ""));
 
 function h(etiket, ozellik, ...cocuklar) {
   const e = document.createElement(etiket);
   for (const [a, d] of Object.entries(ozellik || {})) {
     if (d === undefined || d === null || d === false) continue;
-    if (a === "class") e.className = d; else if (a.startsWith("on")) e.addEventListener(a.slice(2), d); else e.setAttribute(a, d);
+    if (a === "class") e.className = d; else if (a.startsWith("on")) e.addEventListener(a.slice(2), d);
+    else e.setAttribute(a, a === "title" || a === "aria-label" ? c(String(d)) : d);
   }
-  for (const c of cocuklar.flat()) if (c !== null && c !== undefined && c !== false) e.append(c);
+  for (const cocuk of cocuklar.flat()) if (cocuk !== null && cocuk !== undefined && cocuk !== false) e.append(typeof cocuk === "string" ? c(cocuk) : cocuk);
   return e;
 }
 
@@ -56,7 +69,7 @@ function medyaParcasi(v) {
     ? [tus("onceki", "Önceki", "onceki"), tus(m.oynuyor ? "durdur" : "oynat", m.oynuyor ? "Duraklat" : "Oynat", "oynat"), tus("sonraki", "Sonraki", "sonraki")]
     : [m.oynuyor === null ? tus("ikisi", "Oynat / duraklat", "oynat") : tus(m.oynuyor ? "durdur" : "oynat", m.oynuyor ? "Duraklat" : "Oynat", "oynat")];
   return h("div", { class: "medya" }, kapak,
-    h("div", { class: "parca" }, h("b", { title: m.baslik }, m.baslik), h("span", { class: uyari ? "ipucu" : null }, uyari || m.alt)),
+    h("div", { class: "parca" }, h("b", null, ham(m.baslik)), h("span", { class: uyari ? "ipucu" : null }, uyari || m.alt)),
     h("div", { class: "tuslar" }, tuslar));
 }
 
@@ -72,7 +85,6 @@ function ciz(v) {
 
 // Küçük ada: çalarken çentiğin solunda kapak, sağında hareketli ses çubukları. Kapak aynıysa yeniden çizilmez
 // (çubukların canlandırması her güncellemede baştan başlamasın).
-let kucukImza = null;
 function kucukCiz(v) {
   const kok = document.documentElement.style;
   kok.setProperty("--kb", `${v.kb || 32}px`);
@@ -92,6 +104,9 @@ kopru.centikDinle((v) => {
   kucukCiz(v);
   if (v.acik) { ciz(v); requestAnimationFrame(() => ada.classList.add("acik")); } else ada.classList.remove("acik");
 });
+
+kopru.baslangic().then((p) => dilUygula(p && p.dil));
+kopru.dilDinle((d) => dilUygula(d));
 
 // Tarayıcı önizlemesi (tools/preview.js)
 if (window.__CENTIK__) { kucukCiz(window.__CENTIK__); if (window.__CENTIK__.acik) { ciz(window.__CENTIK__); ada.classList.add("acik"); } }

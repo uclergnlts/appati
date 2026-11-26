@@ -3,8 +3,8 @@ const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, session, a
 const path = require("node:path");
 const fs = require("node:fs");
 const { depo } = require("./store");
-const { KAYNAKLAR, SABLONLAR } = require("./katalog");
-const { uygulamayiTopla, ozetle } = require("./collect");
+const { KAYNAKLAR, SABLONLAR, sablonlaTamamla } = require("./katalog");
+const { uygulamayiTopla, ozetle, kaynakSina } = require("./collect");
 const { demoUygulamalar } = require("./demo");
 const { istekci } = require("./util");
 const { farkBul, agHatasi } = require("./bildirim");
@@ -12,6 +12,7 @@ const { centikKur } = require("./centik");
 const { medya } = require("./medya");
 const { guncelleyici } = require("./guncelle");
 const { haftaAnahtari, bildirimMetni } = require("./haftalik");
+const dil = require("./dil");
 
 const GENISLIK = 440;
 const DEMO = process.env.APPATI_DEMO === "1";
@@ -54,7 +55,7 @@ function centikVerisi() {
   const birim = (durum.ozet && durum.ozet.paraBirimi) || "$";
   const rakamlar = [["aktifBugun", "aktif bugün"], ["ziyaretciBugun", "ziyaretçi"], ["yeniKayitBugun", "yeni kayıt"], ["mrr", "MRR"]]
     .filter(([a]) => k[a] !== undefined).slice(0, 3)
-    .map(([a, etiket]) => ({ etiket, deger: `${a === "mrr" ? birim : ""}${Math.round(k[a]).toLocaleString("tr-TR")}` }));
+    .map(([a, etiket]) => ({ etiket, deger: `${a === "mrr" ? birim : ""}${Math.round(k[a]).toLocaleString(dil.yerel())}` }));
   const medyaAcik = kayit.ayar().genel.medya;
   return { rakamlar, demo: durum.demo, medyaAcik, medya: medyaAcik ? (DEMO && !MAC ? ORNEK_MEDYA : sonMedya) : null };
 }
@@ -101,7 +102,7 @@ function gunluk(ne, hata) {
   try { fs.appendFileSync(gunlukYolu(), `${new Date().toISOString()} ${ne}: ${(hata && hata.stack) || hata}\n`); } catch {}
 }
 process.on("unhandledRejection", (h) => gunluk("yakalanmamış söz", h));
-process.on("uncaughtException", (h) => { gunluk("yakalanmamış hata", h); dialog.showErrorBox("Appati bir hatayla karşılaştı", String((h && h.message) || h)); });
+process.on("uncaughtException", (h) => { gunluk("yakalanmamış hata", h); dialog.showErrorBox(dil.c("Appati bir hatayla karşılaştı"), String((h && h.message) || h)); });
 
 function yerlestir() {
   const imlec = screen.getCursorScreenPoint();
@@ -159,10 +160,10 @@ function tepsiKur() {
   tepsi.on("click", ac_kapa);
   tepsi.on("right-click", () => {
     tepsi.popUpContextMenu(Menu.buildFromTemplate([
-      { label: "Paneli aç / kapat", accelerator: "Alt+Command+A", click: ac_kapa },
-      { label: "Şimdi yenile", click: () => yenile() },
+      { label: dil.c("Paneli aç / kapat"), accelerator: "Alt+Command+A", click: ac_kapa },
+      { label: dil.c("Şimdi yenile"), click: () => yenile() },
       { type: "separator" },
-      { label: "Appati'den çık", role: "quit" },
+      { label: dil.c("Appati'den çık"), role: "quit" },
     ]));
   });
 }
@@ -177,7 +178,7 @@ function yayinla() {
     // Simgenin yanındaki sayı: Ayarlar > Menü çubuğunda gösterilen sayı.
     const hangi = kayit.ayar().genel.cubukSayi;
     const d = hangi === "yok" || !durum.ozet ? undefined : durum.ozet.kpi[hangi];
-    const yazi = d === undefined || d === null ? "" : Math.round(d).toLocaleString("tr-TR");
+    const yazi = d === undefined || d === null ? "" : Math.round(d).toLocaleString(dil.yerel());
     tepsi.setTitle(yazi ? ` ${hangi === "mrr" ? durum.ozet.paraBirimi : ""}${yazi}` : "");
   }
 }
@@ -221,12 +222,12 @@ async function yenile() {
       const sonHafta = kayit.onbellek.al("haftalik.sonHafta");
       if (sonHafta !== hafta) {
         kayit.onbellek.yaz("haftalik.sonHafta", hafta);
-        if (sonHafta) for (const u of uygulamalar) { const m = bildirimMetni(u); if (m) bildirimler.push({ uygulamaId: u.id, baslik: `${u.ad}: geçen hafta`, metin: m }); }
+        if (sonHafta) for (const u of uygulamalar) { const m = bildirimMetni(u, dil.c); if (m) bildirimler.push({ uygulamaId: u.id, baslik: `${u.ad}: geçen hafta`, metin: m }); }
       }
       kayit.onbellek.kaydet();
       if (kayit.ayar().genel.bildirim && Notification.isSupported()) {
         for (const b of bildirimler.slice(0, 5)) {
-          const n = new Notification({ title: b.baslik, body: b.metin, silent: false });
+          const n = new Notification({ title: dil.c(b.baslik), body: dil.c(b.metin), silent: false });
           n.on("click", () => { goster(); pencere.webContents.send("git", { ad: "uyg", id: b.uygulamaId, sekme: "ozet" }); });
           n.show();
         }
@@ -249,8 +250,20 @@ function zamanla() {
   zamanlayici = setInterval(yenile, kayit.ayar().genel.yenilemeDk * 60000);
 }
 
+// Arayüze giden dil bilgisi: kod, sayı/tarih yereli, yazı yönü ve sözlük.
+const dilPaketi = () => ({ kod: dil.dil(), yerel: dil.yerel(), yon: dil.yon(), sozluk: dil.sozluk() });
+
+// Dil ayarı değişince (ya da açılışta) etkin dili kurar; değiştiyse pencerelere bildirir ve menüyü yeniler.
+function dilKur() {
+  const once = dil.dil();
+  // İlk kullanımda Türkçe sistemde Türkçe, diğerlerinde sistem diline göre açılır.
+  const yeni = dil.kur(kayit.ayar().genel.dil, app.getLocale());
+  if (yeni !== once && centik && !centik.pencere.isDestroyed()) centik.pencere.webContents.send("dil", dilPaketi());
+  return yeni !== once;
+}
+
 function ipcKur() {
-  const paket = () => ({ guncelleme: guncelle ? guncelle.durum() : { durum: "kapali" }, gunluk: gunlukYolu(), durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion(), vurgu: vurguRengi() });
+  const paket = () => ({ dil: dilPaketi(), guncelleme: guncelle ? guncelle.durum() : { durum: "kapali" }, gunluk: gunlukYolu(), durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion(), vurgu: vurguRengi() });
   ipcMain.handle("baslangic", paket);
   ipcMain.handle("yenile", async () => { kayit.kilidiSifirla(); await yenile(); return paket(); });
   ipcMain.handle("uygulama:kaydet", async (_o, gelen) => { kayit.uygulamaKaydet(gelen); yenile(); return paket(); });
@@ -259,6 +272,7 @@ function ipcKur() {
     const once = kayit.ayar().genel;
     kayit.genelKaydet(yeni || {});
     const sonra = kayit.ayar().genel;
+    if (dilKur()) yenile(); // kaynak mesajları ve biçimler yeni dille yeniden üretilsin
     sabitle();
     temaUygula();
     zamanla();
@@ -267,6 +281,11 @@ function ipcKur() {
     yayinla();
     if (MAC && app.isPackaged) app.setLoginItemSettings({ openAtLogin: kayit.ayar().genel.acilistaBaslat });
     return paket();
+  });
+  ipcMain.handle("kaynak:sina", async (_o, tur, taslak) => {
+    const t = taslak || {};
+    const kayitli = t.id ? kayit.gizliler()[String(t.id)] : {};
+    return kaynakSina(String(tur), t, kayitli, { istek: istekci((adres, secenek) => agOturumu().fetch(adres, secenek)), simdi: new Date() });
   });
   ipcMain.handle("guncelle:denetle", () => { if (guncelle) guncelle.denetle(); return paket(); });
   ipcMain.handle("guncelle:kur", () => { if (guncelle) guncelle.kur(); });
@@ -294,6 +313,9 @@ app.whenReady().then(() => {
   // Yalnızca Linux'taki duman testi için: anahtar halkası olmayan makinede Chromium'un temel şifrelemesine izin ver.
   if (process.platform === "linux" && process.env.APPATI_TEST === "1") safeStorage.setUsePlainTextEncryption(true);
   kayit = depo(app.getPath("userData"), safeStorage);
+  // Şablondan eklenmiş kayıtlarda şablonun sonradan kazandığı alanlar kalıcı olarak yazılır.
+  kayit.uygulamalariDonustur(sablonlaTamamla);
+  dilKur();
   temaUygula();
   ipcKur();
   pencereKur();
@@ -329,7 +351,7 @@ app.whenReady().then(() => {
   } catch (h) {
     // then() içindeki hata sessizce yutulur; görünür kıl.
     gunluk("açılış", h);
-    dialog.showErrorBox("Appati açılamadı", String((h && h.stack) || h));
+    dialog.showErrorBox(dil.c("Appati açılamadı"), String((h && h.stack) || h));
   }
 });
 

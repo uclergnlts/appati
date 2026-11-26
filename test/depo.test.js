@@ -95,10 +95,22 @@ test("şifreleme yoksa gizli anahtar yazılmaz", () => {
   assert.ok(!fs.existsSync(path.join(klasor, "gizli.bin")));
 });
 
+test("kayıtlar dönüştürülüp kalıcı yazılır; değişiklik yoksa dosyaya dokunulmaz", () => {
+  const klasor = fs.mkdtempSync(path.join(os.tmpdir(), "appati-"));
+  const d = depo(klasor, kasa);
+  d.uygulamaKaydet({ ad: "ucler.", kaynaklar: { supabase: { url: "https://x.supabase.co" } } });
+  const { sablonlaTamamla } = require("../src/main/katalog");
+  assert.equal(d.uygulamalariDonustur(sablonlaTamamla), true);
+  const diskte = JSON.parse(fs.readFileSync(path.join(klasor, "ayar.json"), "utf8")).uygulamalar[0].kaynaklar;
+  assert.equal(diskte.supabase.url, "https://x.supabase.co");
+  assert.match(diskte.umami.huniAdimlari, /kayit_tamam/);
+  assert.equal(d.uygulamalariDonustur(sablonlaTamamla), false);
+});
+
 test("genel ayarlar sınırlanır", () => {
   const d = depo(fs.mkdtempSync(path.join(os.tmpdir(), "appati-")), kasa);
   d.genelKaydet({ yenilemeDk: 1, sabit: 1 });
-  assert.deepEqual(d.ayar().genel, { yenilemeDk: 5, saydamlik: 60, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, sabit: true, acilistaBaslat: false, bildirim: true, centik: true, medya: true, otoGuncelle: true, tema: "sistem", cubukSayi: "aktifBugun" });
+  assert.deepEqual(d.ayar().genel, { yenilemeDk: 5, saydamlik: 60, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, sabit: true, acilistaBaslat: false, bildirim: true, centik: true, medya: true, otoGuncelle: true, tema: "sistem", dil: "sistem", cubukSayi: "aktifBugun" });
   // Tek alan gönderilince diğerleri yerinde kalır.
   d.genelKaydet({ medya: false });
   assert.deepEqual([d.ayar().genel.yenilemeDk, d.ayar().genel.sabit, d.ayar().genel.medya], [5, true, false]);

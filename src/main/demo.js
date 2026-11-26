@@ -1,4 +1,5 @@
 // Örnek veri: hiçbir kaynak bağlanmadan paneli denemek için. Gerçek değildir; arayüz bunu açıkça yazar.
+const { yerel } = require("./dil");
 const { sonGunler, topla } = require("./util");
 const { notlar } = require("./collect");
 const { haftalikSatirlar } = require("./haftalik");
@@ -69,12 +70,12 @@ function demoUygulamalar(simdi) {
       olayListeleri: sira === 0 ? [{ etiket: "En çok anlaşılmayan kartlar", ogeler: [["fizik.vektorler.4", 21], ["kimya.mol-kavrami.6", 17], ["fizik.bir-boyutta-hareket.3", 12], ["biyoloji.hucre.5", 9]].map(([ad, v]) => ({ ad, v })) }] : [],
       arama: sira === 0 ? {
         sonGun: gunler[27],
-        sorgular: [["vektör nedir", 64, 1210, 4.2], ["mol kavramı konu anlatımı", 41, 980, 6.8], ["hücre organelleri", 33, 1540, 9.1], ["bir boyutta hareket", 18, 420, 7.5]].map(([ad, v, g, s]) => ({ ad, v, alt: `${g.toLocaleString("tr-TR")} gösterim · ortalama ${s.toLocaleString("tr-TR")}. sıra` })),
-        sayfalar: [["/fizik/vektorler/", 71, 1400, 5.1], ["/kimya/mol-kavrami/", 52, 1130, 6.9], ["/", 30, 600, 3.2]].map(([ad, v, g, s]) => ({ ad, v, alt: `${g.toLocaleString("tr-TR")} gösterim · ortalama ${s.toLocaleString("tr-TR")}. sıra` })),
+        sorgular: [["vektör nedir", 64, 1210, 4.2], ["mol kavramı konu anlatımı", 41, 980, 6.8], ["hücre organelleri", 33, 1540, 9.1], ["bir boyutta hareket", 18, 420, 7.5]].map(([ad, v, g, s]) => ({ ad, v, alt: `${g.toLocaleString(yerel())} gösterim · ortalama ${s.toLocaleString(yerel())}. sıra` })),
+        sayfalar: [["/fizik/vektorler/", 71, 1400, 5.1], ["/kimya/mol-kavrami/", 52, 1130, 6.9], ["/", 30, 600, 3.2]].map(([ad, v, g, s]) => ({ ad, v, alt: `${g.toLocaleString(yerel())} gösterim · ortalama ${s.toLocaleString(yerel())}. sıra` })),
       } : null,
       youtube: sira === 0 ? { kanallar: [{ id: "UCornek", ad: "Örnek Ders", abone: 1240, abone7g: 38, goruntuleme: 86400, goruntuleme7g: 5210, video: 42,
         videolar: [["Vektörler 60 saniyede", 12400, 310, 24, 2], ["Mol kavramı neden zor?", 8900, 205, 31, 5], ["Hücre zarı nasıl çalışır", 4300, 120, 9, 9]]
-          .map(([ad, v, b, y, g]) => ({ ad, v, alt: `${b} beğeni · ${y} yorum · ${new Date(simdi.getTime() - g * 86400000).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}` })) }] } : null,
+          .map(([ad, v, b, y, g]) => ({ ad, v, alt: `${b} beğeni · ${y} yorum · ${new Date(simdi.getTime() - g * 86400000).toLocaleDateString(yerel(), { day: "numeric", month: "short" })}` })) }] } : null,
       paraBirimi: "$", aktifGecmisGun: 30, kurulumSonGun: gunler[28],
     };
     if (sira === 0) u.siteHunisi = [["Siteye gelen", 6480], ["Kayıt davetini gören", 412], ["Kayıt olan", 61], ["Plus sayfasını açan", 187], ["Plus alan", 9]].map(([etiket, deger]) => ({ etiket, deger }));

@@ -76,6 +76,12 @@ Umami kutusundaki "Site hunisi" alanına adımları `Etiket | olay` biçiminde y
 
 Supabase kaynağındaki "Dönüşüm hunisi" alanına adımları sayaçlarla aynı biçimde yazarsın (`Etiket | tablo | filtre`). İlk adım her zaman kayıtlı kullanıcı sayısıdır. ucler. şablonunda hazır gelir: kayıt olan → hesabı eşitlenen → puan kazanan → bir aşama bitiren → Plus abonesi.
 
+## Diller
+
+Arayüz Türkçe, İngilizce, İspanyolca ve Arapça açılır; macOS'un diline göre seçilir, **Ayarlar > Görünüm > Dil** altından değiştirilir. Arapça sağdan sola dizilir.
+
+Uygulamanın kaynak dili Türkçedir: metinler kodda Türkçe yazılır ve ekrana yazılırken `src/ortak/diller/<dil>.json` sözlüğünden çevrilir (`src/ortak/ceviri.js`). Yeni bir metin eklediğinde üç sözlüğe de karşılığını ekle; `npm test` anahtarların ve yer tutucuların tutarlılığını, uçtan uca test de çevrilmemiş metin kalmadığını denetler. `PREVIEW_DIL=en npm run preview` o dilde ekran görüntüsü alır ve eksikleri `preview/en/eksik-en.json` dosyasına yazar.
+
 ## Görünüm
 
 - Panel macOS'un bulanık cam malzemesini kullanır; arka plan hafif saydamdır. Saydamlığı **Ayarlar > Görünüm** altındaki kaydırıcıyla ayarlarsın.

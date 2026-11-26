@@ -44,7 +44,7 @@ test("haftalık satırlar: yüzde, fark, eksik veride değişim yok", () => {
   assert.equal(bul("Kayıtlı kullanıcı").degisim, "değişmedi");
   assert.equal(bul("En çok açılan sayfa").deger, "/fizik/vektorler/");
   assert.equal(bul("En çok anlaşılmayan kartlar").deger, "fizik.vektorler.4");
-  assert.equal(bildirimMetni({ haftalik: s }), "site ziyaretçisi 1.937 (▲ %8), yeni kayıt 97 (▼ %3), aramadan tıklama 12, abone 86 (+2)");
+  assert.equal(bildirimMetni({ haftalik: s }), "Site ziyaretçisi 1.937 (▲ %8) · Yeni kayıt 97 (▼ %3) · Aramadan tıklama 12 · Abone 86 (+2)");
   // Geçmiş yokken fark satırları yalnızca değeri gösterir.
   assert.equal(haftalikSatirlar(u, {}, simdi).find((x) => x.etiket === "Abone").degisim, null);
   assert.deepEqual(haftalikSatirlar({ kpi: {} }, {}, simdi), []);

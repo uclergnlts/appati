@@ -7,6 +7,7 @@ const kopru = window.appati || {
   yenile: async () => window.__ONIZLEME__,
   uygulamaKaydet: async () => window.__ONIZLEME__,
   uygulamaSil: async () => window.__ONIZLEME__,
+  kaynakSina: async () => ({ tamam: true, mesaj: "Bağlantı çalışıyor.", uyarilar: [] }),
   genelKaydet: async () => window.__ONIZLEME__,
   gizle() {}, cik() {}, disari() {}, durumDinle() {}, vurguDinle() {}, gitDinle() {}, ayarDinle() {}, guncellemeDinle() {}, guncellemeDenetle: async () => window.__ONIZLEME__, guncellemeKur() {},
 };
@@ -22,6 +23,22 @@ let G = window.__GORUNUM__ || { ad: "genel" }; // { ad: "genel" | "uyg" | "ayar"
 
 /* ---------- yardımcılar ---------- */
 
+// Çeviri: metinler ekrana yazılırken etkin dilin sözlüğünden çevrilir (bkz. src/ortak/ceviri.js).
+let YEREL = "tr-TR";
+let c = (metin) => metin;
+const CEVRILEN_OZELLIK = new Set(["title", "aria-label", "placeholder"]);
+// Kullanıcının kendi içeriği (yorum metni gibi) çevrilmeden yazılsın diye düğüm olarak verilir.
+const ham = (metin) => document.createTextNode(metin === undefined || metin === null ? "" : String(metin));
+
+function dilUygula(p) {
+  const d = p.dil || { kod: "tr", yerel: "tr-TR", yon: "ltr", sozluk: {} };
+  YEREL = d.yerel;
+  c = d.kod === "tr" ? (m) => m : window.Ceviri.cevirici(d.sozluk);
+  document.documentElement.lang = d.kod;
+  document.documentElement.dir = d.yon;
+  window.__EKSIK__ = c.eksik || new Set();
+}
+
 function h(etiket, ozellik, ...cocuklar) {
   const e = document.createElement(etiket);
   for (const [a, d] of Object.entries(ozellik || {})) {
@@ -31,16 +48,19 @@ function h(etiket, ozellik, ...cocuklar) {
     else if (a === "value") e.value = d;
     else if (a === "style") e.style.cssText = d; // CSP satır içi stil özniteliğini engeller; CSSOM serbest
     else if (a === "checked" || a === "open" || a === "hidden") e[a] = Boolean(d);
-    else e.setAttribute(a, d === true ? "" : d);
+    else e.setAttribute(a, d === true ? "" : CEVRILEN_OZELLIK.has(a) ? c(String(d)) : d);
   }
-  for (const c of cocuklar.flat(Infinity)) if (c !== null && c !== undefined && c !== false) e.append(c);
+  for (const cocuk of cocuklar.flat(Infinity)) {
+    if (cocuk === null || cocuk === undefined || cocuk === false) continue;
+    e.append(typeof cocuk === "string" ? c(cocuk) : cocuk);
+  }
   return e;
 }
 
 function s(etiket, ozellik, ...cocuklar) {
   const e = document.createElementNS(SVGNS, etiket);
   for (const [a, d] of Object.entries(ozellik || {})) {
-    if (a.startsWith("on")) e.addEventListener(a.slice(2), d); else if (d !== undefined && d !== null) e.setAttribute(a, d);
+    if (a.startsWith("on")) e.addEventListener(a.slice(2), d); else if (d !== undefined && d !== null) e.setAttribute(a, CEVRILEN_OZELLIK.has(a) ? c(String(d)) : d);
   }
   for (const c of cocuklar.flat()) if (c) e.append(c);
   return e;
@@ -62,10 +82,10 @@ function ikon(ad, sinif) {
     s("path", { d: IKON[ad] }));
 }
 
-const sayi = (n) => (n === undefined || n === null ? "–" : Math.round(n).toLocaleString("tr-TR"));
-const para = (n, birim) => (n === undefined || n === null ? "–" : `${birim || "$"}${Math.round(n).toLocaleString("tr-TR")}`);
-const gunYaz = (g, uzun) => new Date(`${g}T00:00`).toLocaleDateString("tr-TR", uzun ? { day: "numeric", month: "short", weekday: "short" } : { day: "numeric", month: "short" });
-const saat = (iso) => new Date(iso).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+const sayi = (n) => (n === undefined || n === null ? "–" : Math.round(n).toLocaleString(YEREL));
+const para = (n, birim) => (n === undefined || n === null ? "–" : `${birim || "$"}${Math.round(n).toLocaleString(YEREL)}`);
+const gunYaz = (g, uzun) => new Date(`${g}T00:00`).toLocaleDateString(YEREL, uzun ? { day: "numeric", month: "short", weekday: "short" } : { day: "numeric", month: "short" });
+const saat = (iso) => new Date(iso).toLocaleTimeString(YEREL, { hour: "2-digit", minute: "2-digit" });
 
 function degisim(yeni, eski) {
   if (yeni === undefined || eski === undefined || !eski) return null;
@@ -73,7 +93,7 @@ function degisim(yeni, eski) {
 }
 
 function ipucuGoster(olay, baslik, deger) {
-  ipucu.replaceChildren(h("b", null, deger), " ", h("span", null, baslik));
+  ipucu.replaceChildren(h("b", null, ham(deger)), " ", h("span", null, baslik));
   ipucu.hidden = false;
   const k = ipucu.getBoundingClientRect();
   ipucu.style.left = `${Math.max(6, Math.min(window.innerWidth - k.width - 6, olay.clientX - k.width / 2))}px`;
@@ -156,14 +176,14 @@ function huniKarti(adimlar, oranTabani) {
   const ilk = Math.max(1, adimlar[0].deger);
   return h("div", { class: "kart" }, adimlar.map((a, i) => {
     const onceki = i ? adimlar[i - 1].deger : null;
-    const yuzde = (pay, payda) => ((pay / payda) * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 });
+    const yuzde = (pay, payda) => ((pay / payda) * 100).toLocaleString(YEREL, { maximumFractionDigits: 1 });
     if (oranTabani === "ilk") {
       return h("div", { class: "sira" },
         h("span", { class: "ad", title: a.etiket }, a.etiket),
         h("span", { class: "sayi" }, h("b", null, sayi(a.deger)), i && adimlar[0].deger ? h("span", { class: "oran" }, ` · ziyaretçiye oranı %${yuzde(a.deger, adimlar[0].deger)}`) : null),
         h("span", { class: "iz kalin" }, h("i", { style: `width:${Math.min(100, (a.deger / ilk) * 100)}%` })));
     }
-    const oran = onceki ? ` · önceki adımdan %${((a.deger / onceki) * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}` : "";
+    const oran = onceki ? ` · önceki adımdan %${((a.deger / onceki) * 100).toLocaleString(YEREL, { maximumFractionDigits: 1 })}` : "";
     return h("div", { class: "sira" },
       h("span", { class: "ad", title: a.etiket }, a.etiket),
       h("span", { class: "sayi" }, h("b", null, sayi(a.deger)), i && onceki ? h("span", { class: "oran" }, oran) : null),
@@ -183,6 +203,17 @@ function guncellemeYazisi(g) {
   }
 }
 
+// İki harfli ülke kodlarını (TR, DE) etkin dilde ülke adına çevirir; kod değilse olduğu gibi bırakır.
+function ulkeAdlari(liste) {
+  let adlar = null;
+  try { adlar = new Intl.DisplayNames([YEREL], { type: "region" }); } catch {}
+  return (liste || []).map((o) => {
+    let ad = o.ad;
+    if (adlar && /^[A-Z]{2}$/.test(o.ad)) { try { ad = adlar.of(o.ad) || o.ad; } catch {} }
+    return { ...o, ad };
+  });
+}
+
 /* ---------- parçalar ---------- */
 
 function kutu(etiket, deger, ek) {
@@ -198,7 +229,7 @@ function kutu(etiket, deger, ek) {
 }
 
 function rozet(u, kucuk) {
-  return h("span", { class: `rozet${kucuk ? " kucuk" : ""}`, style: `background:${u.renk}`, "aria-hidden": "true" }, (u.ad || "?").trim().charAt(0).toLocaleUpperCase("tr-TR"));
+  return h("span", { class: `rozet${kucuk ? " kucuk" : ""}`, style: `background:${u.renk}`, "aria-hidden": "true" }, (u.ad || "?").trim().charAt(0).toLocaleUpperCase(YEREL));
 }
 
 function notSeridi(n, tiklanir) {
@@ -347,7 +378,7 @@ function uygulamaGorunumu() {
     }
     govde.append(h("section", { class: "bolum" }, h("h2", null, "Nereden geliyorlar", h("span", null, "ziyaret · son 7 gün")), siraListesi(u.trafik, "Trafik kaynağı verisi yok.")));
     govde.append(h("section", { class: "bolum" }, h("h2", null, "En çok açılan sayfalar", h("span", null, "son 7 gün")), siraListesi(u.sayfalar, "Sayfa verisi yok.")));
-    govde.append(h("section", { class: "bolum" }, h("h2", null, "Ülkeler", h("span", null, "son 7 gün")), siraListesi(u.ulkeler, "Ülke verisi yok.")));
+    govde.append(h("section", { class: "bolum" }, h("h2", null, "Ülkeler", h("span", null, "son 7 gün")), siraListesi(ulkeAdlari(u.ulkeler), "Ülke verisi yok.")));
   }
 
   if (G.sekme === "kullanici" && u.olaylar && u.olaylar.length) {
@@ -406,8 +437,8 @@ function uygulamaGorunumu() {
         h("div", { class: "ust-satir" },
           h("span", { class: "yildiz", role: "img", "aria-label": `${y.puan || 0} yıldız` }, "★".repeat(y.puan || 0), h("i", null, "★".repeat(5 - (y.puan || 0)))),
           h("span", null, [y.magaza, y.ulke, y.tarih ? gunYaz(y.tarih.slice(0, 10)) : null].filter(Boolean).join(" · "))),
-        y.baslik ? h("b", null, y.baslik) : null,
-        h("p", null, y.metin || "(yazısız puan)")))
+        y.baslik ? h("b", null, ham(y.baslik)) : null,
+        h("p", null, y.metin ? ham(y.metin) : "(yazısız puan)")))
         : h("div", { class: "kart bos" }, h("b", null, "Yorum yok"), "App Store Connect ya da Google Play bağlıysa yeni yorumlar burada görünür.")));
   }
 
@@ -439,6 +470,8 @@ function ayarGorunumu() {
   const cubuk = h("select", { "aria-label": "Menü çubuğunda gösterilen sayı" }, [["aktifBugun", "Aktif kullanıcı (bugün)"], ["ziyaretciBugun", "Site ziyaretçisi (bugün)"], ["yeniKayitBugun", "Yeni kayıt (bugün)"], ["mrr", "Aylık yinelenen gelir (MRR)"], ["yok", "Sayı gösterme"]]
     .map(([d, e]) => h("option", { value: d, selected: a.genel.cubukSayi === d ? "" : null }, e)));
   const otoGun = h("input", { type: "checkbox", checked: a.genel.otoGuncelle });
+  const dilSecici = h("select", { "aria-label": "Dil" }, [["sistem", "Sistem dili"], ...Object.entries(window.Ceviri.DILLER).map(([kod, d]) => [kod, null, d.ad])]
+    .map(([kod, etiket, ozAd]) => h("option", { value: kod, selected: a.genel.dil === kod ? "" : null }, ozAd ? ham(ozAd) : etiket)));
   const centik = h("input", { type: "checkbox", checked: a.genel.centik });
   const medyaKutu = h("input", { type: "checkbox", checked: a.genel.medya });
   const kaydirici = (ad, alt, ust, adim, birim) => {
@@ -450,10 +483,10 @@ function ayarGorunumu() {
   const saydam = h("input", { type: "range", min: 0, max: 100, step: 5, value: a.genel.saydamlik, "aria-label": "Saydamlık",
     oninput: (o) => gorunumUygula({ ...a.genel, saydamlik: Number(o.target.value) }) });
   const kaydet = async (ek) => {
-    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), bildirim: bildirim.checked, cubukSayi: cubuk.value, centik: centik.checked, medya: medyaKutu.checked, otoGuncelle: otoGun.checked, centikEn: Number(cEn.giris.value), centikBoy: Number(cBoy.giris.value), centikSaydamlik: Number(cSay.giris.value), ...(ek || {}) });
+    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), bildirim: bildirim.checked, cubukSayi: cubuk.value, centik: centik.checked, medya: medyaKutu.checked, otoGuncelle: otoGun.checked, dil: dilSecici.value, centikEn: Number(cEn.giris.value), centikBoy: Number(cBoy.giris.value), centikSaydamlik: Number(cSay.giris.value), ...(ek || {}) });
     ciz();
   };
-  for (const e of [dk, sabit, acilis, saydam, bildirim, cubuk, centik, medyaKutu, otoGun, cEn.giris, cBoy.giris, cSay.giris]) e.addEventListener("change", () => kaydet());
+  for (const e of [dk, sabit, acilis, saydam, bildirim, cubuk, centik, medyaKutu, otoGun, dilSecici, cEn.giris, cBoy.giris, cSay.giris]) e.addEventListener("change", () => kaydet());
   const temalar = h("div", { class: "secici", role: "group", "aria-label": "Tema" }, [["sistem", "Sistem"], ["acik", "Açık"], ["koyu", "Koyu"]].map(([ad, etiket]) =>
     h("button", { type: "button", "aria-pressed": String(a.genel.tema === ad), onclick: () => kaydet({ tema: ad }) }, etiket)));
 
@@ -470,7 +503,8 @@ function ayarGorunumu() {
           P.sablonlar.filter((s) => !a.uygulamalar.some((u) => u.ad === s.ad)).map((s) => h("button", { class: "btn", onclick: () => formAc(null, s) }, `${s.ad} şablonuyla ekle`)))),
       h("section", { class: "bolum" }, h("h2", null, "Görünüm"),
         h("div", { class: "kart" },
-          h("label", { class: "alan", style: "margin-top:0" }, h("span", null, "Tema")), temalar,
+          h("label", { class: "alan", style: "margin-top:0" }, h("span", null, "Dil"), dilSecici),
+          h("label", { class: "alan" }, h("span", null, "Tema")), temalar,
           h("div", { class: "kucuk-yazi" }, "Sistem: macOS açık ya da koyu görünüme geçtiğinde panel de geçer. Düğmeler macOS vurgu rengini kullanır."),
           h("label", { class: "alan" }, h("span", null, "Arka plan saydamlığı"), saydam),
           h("div", { class: "kucuk-yazi" }, "macOS'ta “Saydamlığı azalt” açıksa panel opak görünür."))),
@@ -521,6 +555,21 @@ function formAc(id, sablon) {
   ciz();
 }
 
+// Kaynak kartının altındaki "Bağlantıyı sına": kaydetmeden önce girilen değerlerle kaynağı dener.
+function sinaSatiri(tur, t) {
+  const sonuc = h("div", { class: "sina-sonuc", role: "status" });
+  const dugme = h("button", { type: "button", class: "btn kucuk", onclick: async () => {
+    dugme.disabled = true;
+    sonuc.className = "sina-sonuc"; sonuc.replaceChildren(c("Deneniyor…"));
+    let r;
+    try { r = await kopru.kaynakSina(tur, { id: t.id, ad: t.ad, kaynaklar: t.kaynaklar, gizli: t.gizli }); } catch (e) { r = { tamam: false, mesaj: String(e.message || e) }; }
+    dugme.disabled = false;
+    sonuc.className = `sina-sonuc ${r.tamam ? "iyi" : "kotu"}`;
+    sonuc.replaceChildren(ikon(r.tamam ? "iyi" : "kotu", "im"), h("span", null, r.mesaj, (r.uyarilar || []).map((u) => h("small", null, u))));
+  } }, "Bağlantıyı sına");
+  return h("div", { class: "sina" }, dugme, sonuc);
+}
+
 function formGorunumu() {
   const t = G.taslak;
   const hata = h("div", { class: "hata-yazi", role: "alert", hidden: true });
@@ -546,19 +595,20 @@ function formGorunumu() {
         };
         const giris = a.cokSatir ? h("textarea", { rows: 3, ...ozellik }) : h("input", { type: a.gizli ? "password" : "text", ...ozellik });
         return h("label", { class: "alan" }, h("span", null, a.etiket), giris, a.ipucu ? h("small", null, a.ipucu) : null);
-      }));
+      }),
+      sinaSatiri(k.tur, t));
   });
 
   const kaydet = async () => {
-    if (!t.ad.trim()) { hata.textContent = "Uygulamaya bir ad ver."; hata.hidden = false; ad.focus(); return; }
+    if (!t.ad.trim()) { hata.textContent = c("Uygulamaya bir ad ver."); hata.hidden = false; ad.focus(); return; }
     try {
       P = await kopru.uygulamaKaydet({ id: t.id, ad: t.ad, renk: t.renk, kaynaklar: t.kaynaklar, gizli: t.gizli });
       G = { ad: "genel" }; ciz();
-    } catch (e) { hata.textContent = String(e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, ""); hata.hidden = false; }
+    } catch (e) { hata.textContent = c(String(e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, "")); hata.hidden = false; }
   };
   let silOnay = false;
   const silDugme = h("button", { class: "btn tehlike", onclick: async () => {
-    if (!silOnay) { silOnay = true; silDugme.textContent = "Emin misin? Anahtarları da silinir"; return; }
+    if (!silOnay) { silOnay = true; silDugme.textContent = c("Emin misin? Anahtarları da silinir"); return; }
     P = await kopru.uygulamaSil(t.id); G = { ad: "ayar" }; ciz();
   } }, "Uygulamayı sil");
 
@@ -595,6 +645,7 @@ function gorunumUygula(genel) {
 
 function ciz(basaDon) {
   ipucuGizle();
+  if (P.dil && P.dil.kod !== document.documentElement.lang) dilUygula(P);
   gorunumUygula(P.ayar.genel);
   const eski = kok.querySelector(".govde");
   const kaydirma = eski && !basaDon ? eski.scrollTop : 0;
@@ -621,4 +672,4 @@ kopru.gitDinle((g) => { if (P) git(g); });
 kopru.guncellemeDinle((g) => { if (!P) return; P.guncelleme = g; if (G.ad === "genel" || G.ad === "ayar") ciz(); });
 kopru.vurguDinle((r) => { if (P) { P.vurgu = r; gorunumUygula(P.ayar.genel); } });
 
-kopru.baslangic().then((p) => { P = p; ciz(); });
+kopru.baslangic().then((p) => { P = p; dilUygula(P); ciz(); });
