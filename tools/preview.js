@@ -34,7 +34,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   };
   await cek("1-genel", { ad: "genel" });
   await cek("2-genel-alt", { ad: "genel" }, (s) => s.evaluate(() => { document.querySelector(".govde").scrollTop = 9999; }));
-  for (const sekme of ["ozet", "kullanici", "arama", "gelir", "yorum", "kaynak"]) await cek(`3-${sekme}`, { ad: "uyg", id: "demo-1", sekme });
+  for (const sekme of ["ozet", "kullanici", "arama", "youtube", "gelir", "yorum", "kaynak"]) await cek(`3-${sekme}`, { ad: "uyg", id: "demo-1", sekme });
   await cek("3-ozet-alt", { ad: "uyg", id: "demo-1", sekme: "ozet" }, (s) => s.evaluate(() => { document.querySelector(".govde").scrollTop = 9999; }));
   await cek("4-ayarlar", { ad: "ayar" });
   await cek("5-form", { ad: "ayar" }, async (s) => { await s.click("text=ucler. şablonuyla ekle"); await s.waitForSelector("details"); });
@@ -44,7 +44,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   await cek("7-acik-ayarlar", { ad: "ayar" }, null, "light");
   // Eksik verili durumlar: kaynağı olmayan, yalnızca Supabase'i olan ve kaynağı bozuk uygulamalar; ayrıca boş liste.
   const { notlar } = require("../src/main/collect");
-  const bos = (ek) => ({ renk: "#3987e5", demo: false, kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], siteHunisi: [], haftalik: [], arama: null, paraBirimi: "$", ...ek });
+  const bos = (ek) => ({ renk: "#3987e5", demo: false, kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], siteHunisi: [], haftalik: [], arama: null, youtube: null, paraBirimi: "$", ...ek });
   const seyrek = [
     bos({ id: "s1", ad: "Kaynaksız" }),
     bos({ id: "s2", ad: "Yalnız Supabase", kaynaklar: [{ tur: "supabase", ad: "Supabase", tamam: true, hata: null, uyarilar: ["Sayaç \"x\" okunamadı (HTTP 404)"] }],
@@ -57,7 +57,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   const asil = paket.durum;
   paket.durum = { uygulamalar: seyrek, ozet: ozetle(seyrek), zaman: simdi.toISOString(), demo: false, yukleniyor: false, hata: "İnternete bağlanılamadı; son okunan rakamlar gösteriliyor." };
   await cek("9-seyrek-genel", { ad: "genel" });
-  for (const id of ["s1", "s2", "s3"]) for (const sekme of ["ozet", "kullanici", "arama", "gelir", "yorum", "kaynak"]) await cek(`9-seyrek-${id}-${sekme}`, { ad: "uyg", id, sekme });
+  for (const id of ["s1", "s2", "s3"]) for (const sekme of ["ozet", "kullanici", "arama", "youtube", "gelir", "yorum", "kaynak"]) await cek(`9-seyrek-${id}-${sekme}`, { ad: "uyg", id, sekme });
   paket.durum = { uygulamalar: [], ozet: null, zaman: null, demo: false, yukleniyor: true };
   await cek("9-bos-yukleniyor", { ad: "genel" });
   await cek("9-silinmis-uygulama", { ad: "uyg", id: "yok", sekme: "ozet" });

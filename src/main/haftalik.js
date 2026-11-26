@@ -67,6 +67,7 @@ function haftalikSatirlar(u, gecmis, simdi) {
     yuzdeSatiri("Yeni kayıt", k.yeniKayit7g, k.yeniKayitOnceki7g),
     yuzdeSatiri("Aramadan tıklama", k.aramaTiklama7g, k.aramaTiklamaOnceki7g),
     yuzdeSatiri("iOS indirme", k.kurulumIos7g, k.kurulumIosOnceki7g),
+    k.ytGoruntuleme7g !== undefined ? { etiket: "YouTube görüntüleme", deger: sayi(k.ytGoruntuleme7g), degisim: null, yon: null } : null,
     farkSatiri("Abone", k.abone, haftaOnce(gecmis, simdi, "abone")),
     farkSatiri("Aylık yinelenen gelir", k.mrr, haftaOnce(gecmis, simdi, "mrr"), para),
     farkSatiri("Kayıtlı kullanıcı", k.kayitli, haftaOnce(gecmis, simdi, "kayitli")),

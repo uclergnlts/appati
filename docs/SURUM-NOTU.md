@@ -1,3 +1,3 @@
-Appati 0.2.2
+Appati 0.2.3
 
-- Düzeltme: Supabase gizli anahtarı "tarayıcıdan kullanılıyor" diye reddediliyordu. İstekler artık uygulamanın kendi kimliğiyle gidiyor.
+- YouTube kaynağı: kanal başına abone, toplam görüntüleme, video sayısı, son videoların izlenme, beğeni ve yorum sayıları; yeni YouTube sekmesi. Birden çok kanal eklenebilir.

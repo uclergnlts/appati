@@ -294,7 +294,7 @@ function uygulamaKarti(u) {
     cizgi ? kivilcim(cizgi, u.seri.ziyaret ? "Ziyaret" : "Yeni kayıt") : null);
 }
 
-const SEKMELER = [["ozet", "Özet"], ["kullanici", "Kullanıcılar"], ["arama", "Arama"], ["gelir", "Gelir"], ["yorum", "Yorumlar"], ["kaynak", "Kaynaklar"]];
+const SEKMELER = [["ozet", "Özet"], ["kullanici", "Kullanıcılar"], ["arama", "Arama"], ["youtube", "YouTube"], ["gelir", "Gelir"], ["yorum", "Yorumlar"], ["kaynak", "Kaynaklar"]];
 
 function uygulamaGorunumu() {
   const u = P.durum.uygulamalar.find((x) => x.id === G.id);
@@ -369,6 +369,23 @@ function uygulamaGorunumu() {
       }
       govde.append(h("section", { class: "bolum" }, h("h2", null, "En çok tıklanan aramalar", h("span", null, "tıklama · son 30 gün")), siraListesi(a.sorgular, "Henüz arama verisi yok.")));
       govde.append(h("section", { class: "bolum" }, h("h2", null, "Aramadan en çok açılan sayfalar", h("span", null, "tıklama · son 30 gün")), siraListesi(a.sayfalar, "Henüz sayfa verisi yok.")));
+    }
+  }
+
+  if (G.sekme === "youtube") {
+    if (!u.youtube) {
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "YouTube"), bagla("YouTube")));
+    } else {
+      for (const kn of u.youtube.kanallar) {
+        const fark = (n) => (n === undefined ? "değişim bir hafta sonra görünür" : n === 0 ? "7 günde değişmedi" : `7 günde ${n > 0 ? "+" : "−"}${sayi(Math.abs(n))}`);
+        govde.append(h("section", { class: "bolum" }, h("h2", null, kn.ad, h("span", null, "herkese açık rakamlar")),
+          h("div", { class: "izgara iki" },
+            kutu("Abone", kn.abone === undefined ? "gizli" : sayi(kn.abone), { not: kn.abone === undefined ? "kanal abone sayısını gizliyor" : fark(kn.abone7g) }),
+            kutu("Toplam görüntüleme", sayi(kn.goruntuleme), { not: fark(kn.goruntuleme7g) }),
+            kutu("Video", sayi(kn.video), { not: "yayında" }))));
+        govde.append(h("section", { class: "bolum" }, h("h2", null, "Son videolar", h("span", null, "görüntüleme")), siraListesi(kn.videolar, "Bu kanalda video bulunamadı.")));
+      }
+      govde.append(h("div", { class: "kucuk-yazi" }, "YouTube abone sayısını yuvarlayarak verir. İzlenme süresi ve trafik kaynakları bu kaynakta yoktur."));
     }
   }
 

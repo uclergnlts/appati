@@ -8,6 +8,7 @@ const supabase = require("../src/main/sources/supabase");
 const ganalytics = require("../src/main/sources/ganalytics");
 const umami = require("../src/main/sources/umami");
 const searchconsole = require("../src/main/sources/searchconsole");
+const youtube = require("../src/main/sources/youtube");
 const revenuecat = require("../src/main/sources/revenuecat");
 const appstore = require("../src/main/sources/appstore");
 const googleplay = require("../src/main/sources/googleplay");
@@ -161,6 +162,45 @@ test("search console: haftalık toplamlar son veri gününe göre, sorgular, say
   const ret = (mesaj, durum = 403) => sahte([[/oauth2/, () => json({ access_token: "t" })], [/searchAnalytics/, () => new Response(JSON.stringify({ error: { message: mesaj } }), { status: durum })]]).ctx;
   await assert.rejects(searchconsole({ siteUrl: "ucler.app" }, { serviceAccount: hesap }, ret("Google Search Console API has not been used in project 9 before or it is disabled.")), /Search Console API” kapalı/);
   await assert.rejects(searchconsole({ siteUrl: "ucler.app" }, { serviceAccount: hesap }, ret("User does not have sufficient permission for site 'sc-domain:ucler.app'.")), /Kullanıcılar ve izinler.*a@b\.iam/);
+});
+
+test("youtube: kanal çözme, rakamlar, videolar, haftalık değişim, hata çevirileri", async () => {
+  assert.deepEqual(youtube.kanalCoz("@ucler"), { forHandle: "@ucler" });
+  assert.deepEqual(youtube.kanalCoz("https://www.youtube.com/@ucler.app/videos"), { forHandle: "@ucler.app" });
+  assert.deepEqual(youtube.kanalCoz("https://youtube.com/channel/UCabcdefghijklmnopqrstuv"), { id: "UCabcdefghijklmnopqrstuv" });
+  assert.deepEqual(youtube.kanalCoz("UCabcdefghijklmnopqrstuv"), { id: "UCabcdefghijklmnopqrstuv" });
+  assert.deepEqual(youtube.kanalCoz("ucler"), { forHandle: "@ucler" });
+  assert.equal(youtube.kanalCoz("bu bir kanal değil!"), null);
+
+  const kanal = (id, ad, abone, gor) => ({ id, snippet: { title: ad }, statistics: { subscriberCount: String(abone), viewCount: String(gor), videoCount: "3" }, contentDetails: { relatedPlaylists: { uploads: `UU${id}` } } });
+  const { ctx, cagrilar } = sahte([
+    [/channels.*forHandle=%40ucler/, () => json({ items: [kanal("UC1", "ucler", 1240, 86400)] })],
+    [/channels.*forHandle=%40yok/, () => json({ items: [] })],
+    [/channels.*id=UCgizliabcdefghijklmnopq/, () => json({ items: [{ id: "UCgizliabcdefghijklmnopq", snippet: { title: "Gizli" }, statistics: { hiddenSubscriberCount: true, viewCount: "10", videoCount: "0" } }] })],
+    [/playlistItems/, () => json({ items: [{ contentDetails: { videoId: "v1" } }, { contentDetails: { videoId: "v2" } }] })],
+    [/videos/, () => json({ items: [
+      { snippet: { title: "Eski", publishedAt: "2026-11-01T10:00:00Z" }, statistics: { viewCount: "500", likeCount: "20", commentCount: "3" } },
+      { snippet: { title: "Yeni", publishedAt: "2026-11-20T10:00:00Z" }, statistics: { viewCount: "12400", likeCount: "310" } },
+    ] })],
+  ]);
+  // Bir hafta önceki kayıt varsa değişim hesaplanır.
+  ctx.onbellek.yaz("youtube.gecmis.UC1", { [gunAnahtari(gunOnce(7))]: { abone: 1200, goruntuleme: 81000 }, [gunAnahtari(gunOnce(40))]: { abone: 1, goruntuleme: 1 } });
+  const r = await youtube({ kanallar: "@ucler\n@yok\nUCgizliabcdefghijklmnopq\n???" }, { apiKey: "AIzaX" }, ctx);
+  assert.ok(cagrilar.every((c) => c.url.includes("key=AIzaX")));
+  const [k1, k2] = r.youtube.kanallar;
+  assert.deepEqual([k1.ad, k1.abone, k1.abone7g, k1.goruntuleme7g, k1.video], ["ucler", 1240, 40, 5400, 3]);
+  assert.deepEqual(k1.videolar.map((v) => [v.ad, v.v]), [["Yeni", 12400], ["Eski", 500]]);
+  assert.match(k1.videolar[0].alt, /310 beğeni · 0 yorum · 20 Kas/);
+  assert.deepEqual([k2.abone, k2.goruntuleme7g], [undefined, undefined]);
+  assert.deepEqual([r.kpi.ytAbone, r.kpi.ytGoruntuleme, r.kpi.ytGoruntuleme7g], [1240, 86410, 5400]);
+  assert.equal(r.uyarilar.length, 2); // bulunamayan kanal ve tanınmayan satır
+  assert.deepEqual(Object.keys(ctx.onbellek.m["youtube.gecmis.UC1"]).sort(), [gunAnahtari(gunOnce(7)), gunAnahtari(simdi)].sort());
+
+  const ret = (mesaj) => sahte([[/channels/, () => new Response(JSON.stringify({ error: { message: mesaj } }), { status: 403 })]]).ctx;
+  await assert.rejects(youtube({ kanallar: "@a1" }, { apiKey: "k" }, ret("YouTube Data API v3 has not been used in project 9 before or it is disabled.")), /Data API v3” kapalı/);
+  await assert.rejects(youtube({ kanallar: "@a1" }, { apiKey: "k" }, ret("API key not valid. Please pass a valid API key.")), /anahtarı geçersiz/);
+  await assert.rejects(youtube({ kanallar: "@a1" }, { apiKey: "k" }, ret("The request cannot be completed because you have exceeded your quota.")), /kotası doldu/);
+  await assert.rejects(youtube({ kanallar: "@yok" }, { apiKey: "k" }, ctx), /bulunamadı/);
 });
 
 test("google analytics: raporlar, tarih aralıkları, kaynak adları, hata çevirileri", async () => {

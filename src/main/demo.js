@@ -50,6 +50,7 @@ function demoUygulamalar(simdi) {
         yeniKayitBugun: kayit[29].v, yeniKayit7g: topla(kayit, 23, 30), yeniKayitOnceki7g: topla(kayit, 16, 23),
         ziyaretciBugun: ziyaret[29].v, goruntulemeBugun: Math.round(ziyaret[29].v * 3.4), ziyaretci7g: z7,
         ziyaretciOnceki7g: topla(ziyaret, 16, 23), goruntuleme7g: Math.round(z7 * 3.4), sitedeSimdi: Math.round(6 * o + r() * 4),
+        ...(sira === 0 ? { ytAbone: 1240, ytGoruntuleme: 86400, ytGoruntuleme7g: 5210 } : {}),
         abone: Math.round(86 * o), deneme: Math.round(12 * o), mrr: Math.round(412 * o), gelir28g: Math.round(520 * o),
         kurulumIos7g: topla(kurulum, 23, 30), kurulumIosOnceki7g: topla(kurulum, 16, 23),
         ...(sira === 0 ? { aramaTiklama7g: Math.round(topla(kurulum, 21, 28) * 0.9), aramaTiklamaOnceki7g: Math.round(topla(kurulum, 14, 21) * 0.9), aramaGosterim7g: topla(ziyaret, 21, 28) * 6, aramaGosterimOnceki7g: topla(ziyaret, 14, 21) * 6 } : {}),
@@ -71,6 +72,9 @@ function demoUygulamalar(simdi) {
         sorgular: [["vektör nedir", 64, 1210, 4.2], ["mol kavramı konu anlatımı", 41, 980, 6.8], ["hücre organelleri", 33, 1540, 9.1], ["bir boyutta hareket", 18, 420, 7.5]].map(([ad, v, g, s]) => ({ ad, v, alt: `${g.toLocaleString("tr-TR")} gösterim · ortalama ${s.toLocaleString("tr-TR")}. sıra` })),
         sayfalar: [["/fizik/vektorler/", 71, 1400, 5.1], ["/kimya/mol-kavrami/", 52, 1130, 6.9], ["/", 30, 600, 3.2]].map(([ad, v, g, s]) => ({ ad, v, alt: `${g.toLocaleString("tr-TR")} gösterim · ortalama ${s.toLocaleString("tr-TR")}. sıra` })),
       } : null,
+      youtube: sira === 0 ? { kanallar: [{ id: "UCornek", ad: "Örnek Ders", abone: 1240, abone7g: 38, goruntuleme: 86400, goruntuleme7g: 5210, video: 42,
+        videolar: [["Vektörler 60 saniyede", 12400, 310, 24, 2], ["Mol kavramı neden zor?", 8900, 205, 31, 5], ["Hücre zarı nasıl çalışır", 4300, 120, 9, 9]]
+          .map(([ad, v, b, y, g]) => ({ ad, v, alt: `${b} beğeni · ${y} yorum · ${new Date(simdi.getTime() - g * 86400000).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}` })) }] } : null,
       paraBirimi: "$", aktifGecmisGun: 30, kurulumSonGun: gunler[28],
     };
     if (sira === 0) u.siteHunisi = [["Siteye gelen", 6480], ["Kayıt davetini gören", 412], ["Kayıt olan", 61], ["Plus sayfasını açan", 187], ["Plus alan", 9]].map(([etiket, deger]) => ({ etiket, deger }));

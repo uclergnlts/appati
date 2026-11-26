@@ -7,6 +7,7 @@ const OKUYUCU = {
   supabase: require("./sources/supabase"),
   umami: require("./sources/umami"),
   searchconsole: require("./sources/searchconsole"),
+  youtube: require("./sources/youtube"),
   ganalytics: require("./sources/ganalytics"),
   revenuecat: require("./sources/revenuecat"),
   appstore: require("./sources/appstore"),
@@ -65,7 +66,7 @@ async function uygulamayiTopla(kayitliUyg, gizliler, ctx) {
   const uyg = sablonlaTamamla(kayitliUyg);
   const u = {
     id: uyg.id, ad: uyg.ad, renk: uyg.renk || "#3987e5", demo: false,
-    kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], siteHunisi: [], haftalik: [], arama: null, paraBirimi: "$",
+    kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], siteHunisi: [], haftalik: [], arama: null, youtube: null, paraBirimi: "$",
   };
   const isler = KAYNAKLAR.map(async (tanim) => {
     const ayar = { ...((uyg.kaynaklar || {})[tanim.tur] || {}) };
@@ -102,6 +103,7 @@ async function uygulamayiTopla(kayitliUyg, gizliler, ctx) {
     if (s.veri.olaylar) u.olaylar = s.veri.olaylar;
     if (s.veri.olayListeleri) u.olayListeleri = s.veri.olayListeleri;
     if (s.veri.arama) u.arama = s.veri.arama;
+    if (s.veri.youtube) u.youtube = s.veri.youtube;
     if (s.veri.siteHunisi && s.veri.siteHunisi.length) u.siteHunisi = s.veri.siteHunisi;
   }
   u.yorumlar.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));

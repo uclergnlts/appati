@@ -28,6 +28,13 @@ const KAYNAKLAR = [
     ],
   },
   {
+    tur: "youtube", ad: "YouTube", ne: "Kanalların abone ve görüntüleme sayıları, son videoların izlenmesi",
+    alanlar: [
+      { ad: "kanallar", etiket: "Kanallar (her satıra bir tane: @ad, kanal adresi ya da UC… kimliği)", cokSatir: true, ornek: "@ucler" },
+      { ad: "apiKey", etiket: "YouTube Data API anahtarı", gizli: true, ipucu: "Google Cloud Console > APIs & Services > Credentials > Create credentials > API key. Projede YouTube Data API v3 açık olmalı. Anahtarı yalnızca bu API'yle sınırla." },
+    ],
+  },
+  {
     tur: "ganalytics", ad: "Google Analytics", ne: "Site ziyaretçisi, nereden geldikleri, sayfalar, ülkeler",
     alanlar: [
       { ad: "propertyId", etiket: "Property ID (sayısal mülk kimliği)", ornek: "412345678", ipucu: "Analytics > Yönetici > Mülk ayrıntıları. G- ile başlayan ölçüm kimliği değil." },

@@ -1,7 +1,7 @@
 {
   "name": "appati",
   "productName": "Appati",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Bütün uygulamalarının rakamları, Mac'inin kenarında tek panelde.",
   "main": "src/main/main.js",
   "private": true,
