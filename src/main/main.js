@@ -1,5 +1,5 @@
 // Appati: menü çubuğunda duran, ekranın sağ kenarında açılan panel.
-const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, net, autoUpdater, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, session, autoUpdater, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { depo } = require("./store");
@@ -29,6 +29,24 @@ let guncelle = null;
 let sonMedya = null;
 const calan = medya();
 const ORNEK_MEDYA = { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı", alt: "Örnek Sanatçı", kapak: null };
+
+// Kaynak istekleri için ayrı, bellekte duran bir ağ oturumu. Chromium'un ağ katmanını kullanır (sistemin vekil
+// sunucu ve IPv4/IPv6 ayarlarına uyar) ama kendini tarayıcı olarak tanıtmaz: Supabase gibi servisler gizli
+// anahtarı "tarayıcıdan geliyor" diye reddediyor ("Forbidden use of secret API key in browser").
+let agOturum_ = null;
+function agOturumu() {
+  if (!agOturum_) {
+    agOturum_ = session.fromPartition("appati-ag");
+    agOturum_.setUserAgent(`Appati/${app.getVersion()} (macOS; masaustu uygulamasi)`);
+    // Chromium'un eklediği tarayıcı ipuçlarını (sec-fetch-*, sec-ch-*) da gönderme.
+    agOturum_.webRequest.onBeforeSendHeaders((ayrinti, geri) => {
+      const basliklar = { ...ayrinti.requestHeaders };
+      for (const ad of Object.keys(basliklar)) if (/^sec-/i.test(ad) || /^accept-language$/i.test(ad)) delete basliklar[ad];
+      geri({ requestHeaders: basliklar });
+    });
+  }
+  return agOturum_;
+}
 
 // Çentikteki özet: bugünün birkaç rakamı ve çalan şarkı / video.
 function centikVerisi() {
@@ -187,7 +205,7 @@ async function yenile() {
       const gizliler = kayit.gizliler();
       // İstekler Chromium'un ağ katmanından gider (net.fetch): sistemin vekil sunucu ayarına ve IPv4/IPv6 seçimine uyar.
       // Node'un kendi fetch'i bozuk IPv6'lı ağlarda bazı sunuculara bağlanırken zaman aşımına düşüyordu.
-      const ctx = { istek: istekci((adres, secenek) => net.fetch(adres, secenek)), simdi, onbellek: kayit.onbellek };
+      const ctx = { istek: istekci((adres, secenek) => agOturumu().fetch(adres, secenek)), simdi, onbellek: kayit.onbellek };
       uygulamalar = await Promise.all(tanimlar.map((u) => uygulamayiTopla(u, gizliler[u.id], ctx)));
       // İnternet yoksa (uyku sonrası, Wi-Fi kopuk) eldeki son rakamlar silinmesin.
       const kaynaklar = uygulamalar.flatMap((u) => u.kaynaklar);

@@ -57,6 +57,20 @@ const assert = require("node:assert");
   await p.waitForSelector("text=Henüz uygulama eklemedin");
   assert.equal(JSON.parse(fs.readFileSync(path.join(veri, "ayar.json"), "utf8")).uygulamalar.length, 0);
 
+  // Kaynak istekleri kendini tarayıcı olarak tanıtmamalı (Supabase gizli anahtarı tarayıcıdan reddeder).
+  const http = require("node:http");
+  const gelen = await new Promise((coz, ret) => {
+    const sunucu = http.createServer((istek, yanit) => { yanit.end("{}"); sunucu.close(); coz(istek.headers); });
+    sunucu.listen(0, "127.0.0.1", () => {
+      uyg.evaluate(({ session }, kapi) => session.fromPartition("appati-ag").fetch(`http://127.0.0.1:${kapi}/`).then((r) => r.status), sunucu.address().port).catch(ret);
+    });
+  });
+  assert.match(gelen["user-agent"], /^Appati\/\d/, "kendi kimliğiyle istek atar");
+  assert.ok(!/Mozilla|Chrome|Safari|Electron/.test(gelen["user-agent"]), `tarayıcı kimliği yok: ${gelen["user-agent"]}`);
+  assert.deepEqual(Object.keys(gelen).filter((b) => b.startsWith("sec-")), [], "tarayıcı ipucu başlıkları gönderilmez");
+  for (const b of ["origin", "referer", "cookie"]) assert.equal(gelen[b], undefined, `${b} başlığı gönderilmez`);
+  console.log("İstek başlıkları:", JSON.stringify(gelen));
+
   await uyg.close();
   assert.deepEqual(hatalar, [], "arayüz hatası yok");
 
