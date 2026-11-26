@@ -8,7 +8,7 @@ const kopru = window.appati || {
   uygulamaKaydet: async () => window.__ONIZLEME__,
   uygulamaSil: async () => window.__ONIZLEME__,
   genelKaydet: async () => window.__ONIZLEME__,
-  gizle() {}, cik() {}, disari() {}, durumDinle() {}, vurguDinle() {}, gitDinle() {}, ayarDinle() {},
+  gizle() {}, cik() {}, disari() {}, durumDinle() {}, vurguDinle() {}, gitDinle() {}, ayarDinle() {}, guncellemeDinle() {}, guncellemeDenetle: async () => window.__ONIZLEME__, guncellemeKur() {},
 };
 if (!window.appati) document.body.classList.add("onizleme");
 
@@ -162,6 +162,18 @@ function huniKarti(adimlar) {
   }));
 }
 
+function guncellemeYazisi(g) {
+  switch (g.durum) {
+    case "denetleniyor": return "Yeni sürüm var mı diye bakılıyor…";
+    case "guncel": return "En güncel sürümü kullanıyorsun.";
+    case "indiriliyor": return "Yeni sürüm indiriliyor…";
+    case "hazir": return `Appati ${g.surum || "yeni sürüm"} indirildi; yeniden başlatınca kurulur.`;
+    case "hata": return `Güncelleme denetlenemedi: ${g.mesaj || "bilinmeyen hata"}`;
+    case "kapali": return "Otomatik güncelleme yalnızca kurulu, imzalı Mac uygulamasında çalışır.";
+    default: return "Açılıştan kısa süre sonra ve altı saatte bir denetlenir.";
+  }
+}
+
 /* ---------- parçalar ---------- */
 
 function kutu(etiket, deger, ek) {
@@ -222,6 +234,12 @@ function genelGorunum() {
       h("button", { class: "baglanti", onclick: () => git({ ad: "ayar" }) }, "ilk uygulamanı ekle"), ".")));
   }
   if (d.hata) govde.append(notSeridi({ tur: "uyari", metin: d.hata }));
+  const gun = P.guncelleme || {};
+  if (gun.durum === "hazir") {
+    govde.append(h("div", { class: "serit iyi" }, ikon("iyi", "im"), h("div", null,
+      `Appati ${gun.surum || "yeni sürüm"} indirildi. `,
+      h("button", { class: "baglanti", onclick: () => kopru.guncellemeKur() }, "Yeniden başlat ve güncelle"))));
+  }
 
   if (d.ozet) {
     if (d.ozet.notlar.length) {
@@ -382,6 +400,7 @@ function ayarGorunumu() {
   const bildirim = h("input", { type: "checkbox", checked: a.genel.bildirim });
   const cubuk = h("select", { "aria-label": "Menü çubuğunda gösterilen sayı" }, [["aktifBugun", "Aktif kullanıcı (bugün)"], ["ziyaretciBugun", "Site ziyaretçisi (bugün)"], ["yeniKayitBugun", "Yeni kayıt (bugün)"], ["mrr", "Aylık yinelenen gelir (MRR)"], ["yok", "Sayı gösterme"]]
     .map(([d, e]) => h("option", { value: d, selected: a.genel.cubukSayi === d ? "" : null }, e)));
+  const otoGun = h("input", { type: "checkbox", checked: a.genel.otoGuncelle });
   const centik = h("input", { type: "checkbox", checked: a.genel.centik });
   const medyaKutu = h("input", { type: "checkbox", checked: a.genel.medya });
   const kaydirici = (ad, alt, ust, adim, birim) => {
@@ -393,10 +412,10 @@ function ayarGorunumu() {
   const saydam = h("input", { type: "range", min: 0, max: 100, step: 5, value: a.genel.saydamlik, "aria-label": "Saydamlık",
     oninput: (o) => gorunumUygula({ ...a.genel, saydamlik: Number(o.target.value) }) });
   const kaydet = async (ek) => {
-    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), bildirim: bildirim.checked, cubukSayi: cubuk.value, centik: centik.checked, medya: medyaKutu.checked, centikEn: Number(cEn.giris.value), centikBoy: Number(cBoy.giris.value), centikSaydamlik: Number(cSay.giris.value), ...(ek || {}) });
+    P = await kopru.genelKaydet({ ...a.genel, yenilemeDk: Number(dk.value), sabit: sabit.checked, acilistaBaslat: acilis.checked, saydamlik: Number(saydam.value), bildirim: bildirim.checked, cubukSayi: cubuk.value, centik: centik.checked, medya: medyaKutu.checked, otoGuncelle: otoGun.checked, centikEn: Number(cEn.giris.value), centikBoy: Number(cBoy.giris.value), centikSaydamlik: Number(cSay.giris.value), ...(ek || {}) });
     ciz();
   };
-  for (const e of [dk, sabit, acilis, saydam, bildirim, cubuk, centik, medyaKutu, cEn.giris, cBoy.giris, cSay.giris]) e.addEventListener("change", () => kaydet());
+  for (const e of [dk, sabit, acilis, saydam, bildirim, cubuk, centik, medyaKutu, otoGun, cEn.giris, cBoy.giris, cSay.giris]) e.addEventListener("change", () => kaydet());
   const temalar = h("div", { class: "secici", role: "group", "aria-label": "Tema" }, [["sistem", "Sistem"], ["acik", "Açık"], ["koyu", "Koyu"]].map(([ad, etiket]) =>
     h("button", { type: "button", "aria-pressed": String(a.genel.tema === ad), onclick: () => kaydet({ tema: ad }) }, etiket)));
 
@@ -434,6 +453,15 @@ function ayarGorunumu() {
           h("label", { class: "onay" }, bildirim, "Bildirim gönder (düşük puanlı yorum, yeni abone, okunamayan kaynak)"),
           h("label", { class: "alan" }, h("span", null, "Menü çubuğunda simgenin yanındaki sayı"), cubuk),
           h("div", { class: "kucuk-yazi" }, "Kısayol: ⌥⌘A paneli açar ve kapatır."))),
+      h("section", { class: "bolum" }, h("h2", null, "Güncelleme"),
+        h("div", { class: "kart" },
+          h("div", null, `Kurulu sürüm: ${P.surum || "?"}`),
+          h("div", { class: "kucuk-yazi" }, guncellemeYazisi(P.guncelleme || {})),
+          h("label", { class: "onay" }, otoGun, "Yeni sürümleri kendiliğinden indir"),
+          (P.guncelleme || {}).durum === "kapali" ? null : h("div", { class: "eylem" },
+            (P.guncelleme || {}).durum === "hazir"
+              ? h("button", { class: "btn ana", onclick: () => kopru.guncellemeKur() }, "Yeniden başlat ve güncelle")
+              : h("button", { class: "btn", onclick: async () => { P = await kopru.guncellemeDenetle(); ciz(); } }, "Şimdi denetle")))),
       P.gunluk ? h("section", { class: "bolum" }, h("h2", null, "Sorun giderme"),
         h("div", { class: "kart kucuk-yazi", style: "margin-top:0" }, "Bir şey çalışmazsa hata kaydı şu dosyadadır: ", P.gunluk)) : null,
       h("section", { class: "bolum" }, h("h2", null, "Gizlilik"),
@@ -549,6 +577,7 @@ kopru.durumDinle((d) => {
 // Ayarlar ekranı açıkken üzerine yazma; kullanıcının yaptığı değişiklik kaybolmasın.
 kopru.ayarDinle((a) => { if (P && G.ad !== "form" && G.ad !== "ayar") P.ayar = a; });
 kopru.gitDinle((g) => { if (P) git(g); });
+kopru.guncellemeDinle((g) => { if (!P) return; P.guncelleme = g; if (G.ad === "genel" || G.ad === "ayar") ciz(); });
 kopru.vurguDinle((r) => { if (P) { P.vurgu = r; gorunumUygula(P.ayar.genel); } });
 
 kopru.baslangic().then((p) => { P = p; ciz(); });

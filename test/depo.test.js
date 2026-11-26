@@ -98,7 +98,7 @@ test("şifreleme yoksa gizli anahtar yazılmaz", () => {
 test("genel ayarlar sınırlanır", () => {
   const d = depo(fs.mkdtempSync(path.join(os.tmpdir(), "appati-")), kasa);
   d.genelKaydet({ yenilemeDk: 1, sabit: 1 });
-  assert.deepEqual(d.ayar().genel, { yenilemeDk: 5, saydamlik: 60, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, sabit: true, acilistaBaslat: false, bildirim: true, centik: true, medya: true, tema: "sistem", cubukSayi: "aktifBugun" });
+  assert.deepEqual(d.ayar().genel, { yenilemeDk: 5, saydamlik: 60, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, sabit: true, acilistaBaslat: false, bildirim: true, centik: true, medya: true, otoGuncelle: true, tema: "sistem", cubukSayi: "aktifBugun" });
   // Tek alan gönderilince diğerleri yerinde kalır.
   d.genelKaydet({ medya: false });
   assert.deepEqual([d.ayar().genel.yenilemeDk, d.ayar().genel.sabit, d.ayar().genel.medya], [5, true, false]);

@@ -1,5 +1,5 @@
 // Appati: menü çubuğunda duran, ekranın sağ kenarında açılan panel.
-const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, net, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Notification, Tray, powerMonitor, dialog, net, autoUpdater, Menu, ipcMain, nativeImage, nativeTheme, systemPreferences, screen, globalShortcut, shell, safeStorage } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { depo } = require("./store");
@@ -10,6 +10,7 @@ const { istekci } = require("./util");
 const { farkBul, agHatasi } = require("./bildirim");
 const { centikKur } = require("./centik");
 const { medya } = require("./medya");
+const { guncelleyici } = require("./guncelle");
 
 const GENISLIK = 440;
 const DEMO = process.env.APPATI_DEMO === "1";
@@ -23,6 +24,7 @@ let suren = null;
 let zamanlayici = null;
 let centik = null;
 let medyaSayac = null;
+let guncelle = null;
 let sonMedya = null;
 const calan = medya();
 const ORNEK_MEDYA = { kaynak: "spotify", oynuyor: true, baslik: "Örnek Şarkı", alt: "Örnek Sanatçı", kapak: null };
@@ -222,7 +224,7 @@ function zamanla() {
 }
 
 function ipcKur() {
-  const paket = () => ({ gunluk: gunlukYolu(), durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion(), vurgu: vurguRengi() });
+  const paket = () => ({ guncelleme: guncelle ? guncelle.durum() : { durum: "kapali" }, gunluk: gunlukYolu(), durum, ayar: kayit.guvenliAyar(), katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: app.getVersion(), vurgu: vurguRengi() });
   ipcMain.handle("baslangic", paket);
   ipcMain.handle("yenile", async () => { kayit.kilidiSifirla(); await yenile(); return paket(); });
   ipcMain.handle("uygulama:kaydet", async (_o, gelen) => { kayit.uygulamaKaydet(gelen); yenile(); return paket(); });
@@ -240,6 +242,8 @@ function ipcKur() {
     if (MAC && app.isPackaged) app.setLoginItemSettings({ openAtLogin: kayit.ayar().genel.acilistaBaslat });
     return paket();
   });
+  ipcMain.handle("guncelle:denetle", () => { if (guncelle) guncelle.denetle(); return paket(); });
+  ipcMain.handle("guncelle:kur", () => { if (guncelle) guncelle.kur(); });
   ipcMain.handle("gizle", () => pencere.hide());
   ipcMain.handle("panel:ac", () => { if (centik) centik.kapat(); goster(); });
   ipcMain.handle("medya:komut", async (_o, komut) => {
@@ -286,6 +290,14 @@ app.whenReady().then(() => {
   pencere.once("ready-to-show", basla);
   setTimeout(basla, 4000); // pencere olayı gelmezse yine de başla
   zamanla();
+  // Güncelleme: yalnızca paketlenmiş Mac uygulamasında. Açılıştan kısa süre sonra ve altı saatte bir denetlenir.
+  guncelle = guncelleyici({
+    autoUpdater, etkin: MAC && app.isPackaged, gunluk,
+    bildir: (d) => { if (pencere && !pencere.isDestroyed()) pencere.webContents.send("guncelleme", d); },
+  });
+  const guncellemeDenetle = () => { if (kayit.ayar().genel.otoGuncelle) guncelle.denetle(); };
+  setTimeout(guncellemeDenetle, 20000);
+  setInterval(guncellemeDenetle, 6 * 3600000);
   // Uykudan uyanınca ağın gelmesini kısa süre bekleyip yenile.
   powerMonitor.on("resume", () => setTimeout(yenile, 8000));
   } catch (h) {

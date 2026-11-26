@@ -35,6 +35,11 @@ Depoya imzalama sırları eklenmediği sürece uygulama Apple Developer ID ile i
 xattr -dr com.apple.quarantine /Applications/Appati.app
 ```
 
+### Güncelleme
+İmzalı sürüm kendini günceller: açılıştan kısa süre sonra ve altı saatte bir GitHub'daki son yayına bakar, yeni sürümü arka planda indirir ve panelde "Yeniden başlat ve güncelle" gösterir. **Ayarlar > Güncelleme** altından kapatılır ya da elle denetlenir.
+
+Yeni sürüm yayınlamak için: `package.json`'daki sürümü artır, `docs/SURUM-NOTU.md`'yi güncelle, **Actions > Mac uygulaması > Run workflow**'da "yayinla" kutusunu işaretle.
+
 ### Kaynaktan
 ```bash
 npm install

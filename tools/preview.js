@@ -12,8 +12,8 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   const uygulamalar = demoUygulamalar(simdi);
   const paket = {
     durum: { uygulamalar, ozet: ozetle(uygulamalar), zaman: simdi.toISOString(), demo: true, yukleniyor: false },
-    ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true, centikEn: 300, centikBoy: 32, centikSaydamlik: 0 }, uygulamalar: [] },
-    katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: "önizleme", vurgu: null,
+    ayar: { genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, otoGuncelle: true }, uygulamalar: [] },
+    katalog: KAYNAKLAR, sablonlar: SABLONLAR, surum: "önizleme", vurgu: null, guncelleme: { durum: "hazir", surum: "0.2.1" },
   };
   const cikti = path.join(__dirname, "..", "preview");
   fs.mkdirSync(cikti, { recursive: true });

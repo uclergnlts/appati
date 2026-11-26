@@ -5,7 +5,7 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { KAYNAKLAR, gizliAlanlar } = require("./katalog");
 
-const VARSAYILAN = { uygulamalar: [], genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true, centikEn: 300, centikBoy: 32, centikSaydamlik: 0 } };
+const VARSAYILAN = { uygulamalar: [], genel: { yenilemeDk: 15, sabit: false, acilistaBaslat: false, tema: "sistem", saydamlik: 60, bildirim: true, cubukSayi: "aktifBugun", centik: true, medya: true, centikEn: 300, centikBoy: 32, centikSaydamlik: 0, otoGuncelle: true } };
 const CUBUK = ["aktifBugun", "ziyaretciBugun", "yeniKayitBugun", "mrr", "yok"];
 const TEMALAR = ["sistem", "acik", "koyu"];
 
@@ -144,7 +144,7 @@ function depo(klasor, safeStorage) {
       ayar.genel = {
         yenilemeDk: sayi("yenilemeDk", 5, 240), saydamlik: sayi("saydamlik", 0, 100),
         centikEn: sayi("centikEn", 200, 480), centikBoy: sayi("centikBoy", 22, 48), centikSaydamlik: sayi("centikSaydamlik", 0, 80),
-        sabit: mantik("sabit"), acilistaBaslat: mantik("acilistaBaslat"), bildirim: mantik("bildirim"), centik: mantik("centik"), medya: mantik("medya"),
+        sabit: mantik("sabit"), acilistaBaslat: mantik("acilistaBaslat"), bildirim: mantik("bildirim"), centik: mantik("centik"), medya: mantik("medya"), otoGuncelle: mantik("otoGuncelle"),
         tema: TEMALAR.includes(yeni.tema) ? yeni.tema : g.tema,
         cubukSayi: CUBUK.includes(yeni.cubukSayi) ? yeni.cubukSayi : g.cubukSayi,
       };
