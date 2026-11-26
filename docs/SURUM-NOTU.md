@@ -1,8 +1,5 @@
-Appati 0.2.0
+Appati 0.2.1
 
-- Otomatik güncelleme: yeni sürümler kendiliğinden indirilir, panelde "Yeniden başlat ve güncelle" çıkar.
-- Developer ID ile imzalı ve Apple onaylı.
-- Umami (ücretsiz paylaşım bağlantısıyla), Google Search Console, olay dökümleri.
-- Çentik şeridinin boyut ve saydamlık ayarı.
-
-Kurulum: `.dmg` dosyasını indir, Appati'yi Uygulamalar klasörüne sürükle.
+- Haftalık özet: her uygulamanın Özet sekmesinde "Son 7 gün" (ziyaretçi, kayıt, arama, indirme, abone, gelir ve önceki haftaya göre değişim); yeni haftanın ilk okumasında bildirim.
+- Site hunisi: siteye gelen → kayıt davetini gören → kayıt olan → Plus sayfasını açan → Plus alan (Umami olaylarından, son 30 gün).
+- Şablondan eklenen uygulamalarda şablona sonradan gelen alanlar kendiliğinden dolar.

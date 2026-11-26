@@ -1,5 +1,6 @@
 // Bir uygulamanın bütün kaynaklarını okuyup tek bir tabloda birleştirir; "neye bakmalı" notlarını üretir.
-const { KAYNAKLAR, gizliAlanlar } = require("./katalog");
+const { KAYNAKLAR, gizliAlanlar, sablonlaTamamla } = require("./katalog");
+const { gunlukKaydet, haftalikSatirlar } = require("./haftalik");
 const { gunAnahtari, sonGunler, seri } = require("./util");
 
 const OKUYUCU = {
@@ -60,10 +61,11 @@ function notlar(u) {
   return n;
 }
 
-async function uygulamayiTopla(uyg, gizliler, ctx) {
+async function uygulamayiTopla(kayitliUyg, gizliler, ctx) {
+  const uyg = sablonlaTamamla(kayitliUyg);
   const u = {
     id: uyg.id, ad: uyg.ad, renk: uyg.renk || "#3987e5", demo: false,
-    kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], arama: null, paraBirimi: "$",
+    kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], siteHunisi: [], haftalik: [], arama: null, paraBirimi: "$",
   };
   const isler = KAYNAKLAR.map(async (tanim) => {
     const ayar = { ...((uyg.kaynaklar || {})[tanim.tur] || {}) };
@@ -75,6 +77,7 @@ async function uygulamayiTopla(uyg, gizliler, ctx) {
     }
     if (!kaynakDolu(tanim.tur, ayar, gizli)) return null;
     if (tanim.tur === "supabase") { ayar.sayaclar = sayaclariOku(ayar.sayaclar); ayar.huni = sayaclariOku(ayar.huni); }
+    if (tanim.tur === "umami") ayar.huniAdimlari = sayaclariOku(ayar.huniAdimlari).map((s) => ({ etiket: s.etiket, olay: s.tablo }));
     if (tanim.tur === "umami") ayar.olayDokumleri = sayaclariOku(ayar.olayDokumleri).map((s) => ({ etiket: s.etiket, olay: s.tablo, ozellik: s.filtre }));
     try {
       return { tanim, veri: await OKUYUCU[tanim.tur](ayar, gizli, ctx) };
@@ -99,6 +102,7 @@ async function uygulamayiTopla(uyg, gizliler, ctx) {
     if (s.veri.olaylar) u.olaylar = s.veri.olaylar;
     if (s.veri.olayListeleri) u.olayListeleri = s.veri.olayListeleri;
     if (s.veri.arama) u.arama = s.veri.arama;
+    if (s.veri.siteHunisi && s.veri.siteHunisi.length) u.siteHunisi = s.veri.siteHunisi;
   }
   u.yorumlar.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
 
@@ -112,6 +116,10 @@ async function uygulamayiTopla(uyg, gizliler, ctx) {
     u.seri.aktif = seri(gunler, gecmis);
     u.aktifGecmisGun = Object.keys(gecmis).length;
   }
+  // Haftalık özet: abone, MRR ve kayıtlı kullanıcının günlük değeri saklanır, 7 gün öncesiyle karşılaştırılır.
+  const gunluk = gunlukKaydet(ctx.onbellek.al(`gunluk.${u.id}`), ctx.simdi, u.kpi);
+  ctx.onbellek.yaz(`gunluk.${u.id}`, gunluk);
+  u.haftalik = haftalikSatirlar(u, gunluk, ctx.simdi);
   u.notlar = notlar(u);
   return u;
 }

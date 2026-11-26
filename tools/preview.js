@@ -44,7 +44,7 @@ const { KAYNAKLAR, SABLONLAR } = require("../src/main/katalog");
   await cek("7-acik-ayarlar", { ad: "ayar" }, null, "light");
   // Eksik verili durumlar: kaynağı olmayan, yalnızca Supabase'i olan ve kaynağı bozuk uygulamalar; ayrıca boş liste.
   const { notlar } = require("../src/main/collect");
-  const bos = (ek) => ({ renk: "#3987e5", demo: false, kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], arama: null, paraBirimi: "$", ...ek });
+  const bos = (ek) => ({ renk: "#3987e5", demo: false, kaynaklar: [], kpi: {}, seri: {}, trafik: [], sayfalar: [], ulkeler: [], yorumlar: [], sayaclar: [], huni: [], olaylar: [], olayListeleri: [], siteHunisi: [], haftalik: [], arama: null, paraBirimi: "$", ...ek });
   const seyrek = [
     bos({ id: "s1", ad: "Kaynaksız" }),
     bos({ id: "s2", ad: "Yalnız Supabase", kaynaklar: [{ tur: "supabase", ad: "Supabase", tamam: true, hata: null, uyarilar: ["Sayaç \"x\" okunamadı (HTTP 404)"] }],

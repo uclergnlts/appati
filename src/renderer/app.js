@@ -150,10 +150,19 @@ function siraListesi(ogeler, bosYazi) {
 }
 
 // Huni: her adımın çubuğu ilk adıma göre; yanında bir önceki adımdan kalanların yüzdesi.
-function huniKarti(adimlar) {
+// oranTabani "ilk": her adım ilk adımın yüzdesi olarak yazılır (adımları olay sayısı olan, sırayla azalması
+// gerekmeyen site hunisi için); varsayılan: bir önceki adımın yüzdesi.
+function huniKarti(adimlar, oranTabani) {
   const ilk = Math.max(1, adimlar[0].deger);
   return h("div", { class: "kart" }, adimlar.map((a, i) => {
     const onceki = i ? adimlar[i - 1].deger : null;
+    const yuzde = (pay, payda) => ((pay / payda) * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 });
+    if (oranTabani === "ilk") {
+      return h("div", { class: "sira" },
+        h("span", { class: "ad", title: a.etiket }, a.etiket),
+        h("span", { class: "sayi" }, h("b", null, sayi(a.deger)), i && adimlar[0].deger ? h("span", { class: "oran" }, ` · ziyaretçiye oranı %${yuzde(a.deger, adimlar[0].deger)}`) : null),
+        h("span", { class: "iz kalin" }, h("i", { style: `width:${Math.min(100, (a.deger / ilk) * 100)}%` })));
+    }
     const oran = onceki ? ` · önceki adımdan %${((a.deger / onceki) * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}` : "";
     return h("div", { class: "sira" },
       h("span", { class: "ad", title: a.etiket }, a.etiket),
@@ -299,12 +308,24 @@ function uygulamaGorunumu() {
       u.notlar.length ? u.notlar.map((n) => notSeridi(n)) : notSeridi({ tur: "bilgi", metin: "Henüz kaynak bağlı değil. Kaynaklar sekmesinden ekleyebilirsin." })));
     const kutular = kpiKutulari(k, u.seri, u.paraBirimi);
     govde.append(h("section", { class: "bolum" }, h("h2", null, "Rakamlar"), kutular || bagla("en az bir")));
+    if (u.haftalik && u.haftalik.length) {
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "Son 7 gün", h("span", null, "önceki haftaya göre")),
+        h("div", { class: "kart" }, u.haftalik.map((s) => h("div", { class: "liste-satir hafta", title: s.aciklama || null },
+          h("span", null, s.etiket),
+          h("span", { class: "hafta-sag" },
+            h("b", { class: s.metin ? "metin" : null, title: s.metin ? s.deger : null }, s.deger),
+            s.degisim ? h("span", { class: "degisim" }, s.yon ? h("span", { class: `ok ${s.yon}` }, s.yon === "yukari" ? "▲ " : "▼ ") : null, s.degisim) : null))))));
+    }
     if (u.seri.aktif && u.aktifGecmisGun > 1) {
       govde.append(h("section", { class: "bolum" }, h("h2", null, "Aktif kullanıcı", h("span", null, "günlük")),
         grafikKarti("Günlük aktif", u.seri.aktif, "Aktif kullanıcı", u.aktifGecmisGun < 30 ? `Geçmiş, Appati çalıştıkça birikir (şimdilik ${u.aktifGecmisGun} gün).` : null)));
     }
+    if (u.siteHunisi && u.siteHunisi.length > 1) {
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "Site hunisi", h("span", null, "son 30 gün")), huniKarti(u.siteHunisi, "ilk"),
+        h("div", { class: "kucuk-yazi" }, "İlk adım tekil ziyaretçi, sonraki adımlar o olayın kaç kez gerçekleştiğidir; aynı kişi bir adımı birden çok kez yapabilir.")));
+    }
     if (u.huni && u.huni.length > 1) {
-      govde.append(h("section", { class: "bolum" }, h("h2", null, "Dönüşüm hunisi", h("span", null, "bütün zamanlar")), huniKarti(u.huni)));
+      govde.append(h("section", { class: "bolum" }, h("h2", null, "Hesap hunisi", h("span", null, "kayıttan aboneliğe · bütün zamanlar")), huniKarti(u.huni)));
     }
     for (const l of u.olayListeleri || []) {
       govde.append(h("section", { class: "bolum" }, h("h2", null, l.etiket, h("span", null, "son 30 gün")), siraListesi(l.ogeler, "Son 30 günde bu olay hiç gelmedi.")));
@@ -472,7 +493,10 @@ function ayarGorunumu() {
 
 function formAc(id, sablon) {
   const var_ = id ? P.ayar.uygulamalar.find((u) => u.id === id) : null;
-  const kaynak = var_ || sablon || {};
+  // Adı şablonla aynı olan kayıtta boş alanlar şablondaki değerle açılır (çalışma zamanında da öyle kullanılır).
+  const esSablon = var_ ? P.sablonlar.find((s) => s.ad === var_.ad) : null;
+  const tamam = var_ && esSablon ? { ...var_, kaynaklar: Object.fromEntries(P.katalog.map((k) => [k.tur, { ...(esSablon.kaynaklar[k.tur] || {}), ...Object.fromEntries(Object.entries(var_.kaynaklar[k.tur] || {}).filter(([, d]) => d)) }])) } : var_;
+  const kaynak = tamam || sablon || {};
   G = { ad: "form", taslak: {
     id: var_ ? var_.id : null, ad: kaynak.ad || "", renk: kaynak.renk || RENKLER[P.ayar.uygulamalar.length % RENKLER.length],
     kaynaklar: JSON.parse(JSON.stringify(kaynak.kaynaklar || {})), gizli: {}, gizliVar: (var_ && var_.gizliVar) || {},

@@ -1,6 +1,7 @@
 // Örnek veri: hiçbir kaynak bağlanmadan paneli denemek için. Gerçek değildir; arayüz bunu açıkça yazar.
 const { sonGunler, topla } = require("./util");
 const { notlar } = require("./collect");
+const { haftalikSatirlar } = require("./haftalik");
 
 // Tohumlu sözde rastgele: aynı gün içinde sayılar değişmesin.
 function rastgele(tohum) {
@@ -57,6 +58,7 @@ function demoUygulamalar(simdi) {
       trafik: t.trafik.map((ad, i) => ({ ad, v: Math.round((z7 * (0.42 - i * 0.08)) / (1 + i * 0.2)) })),
       sayfalar: ["/", "/ogren/", "/videolar/", "/fizik/hareket/", "/plus/"].map((ad, i) => ({ ad, v: Math.round((z7 * 1.6) / (i + 1.4)) })),
       ulkeler: ["TR", "DE", "US", "NL", "AZ"].map((ad, i) => ({ ad, v: Math.round((z7 * 0.8) / (i * i * 2 + 1)) })),
+      siteHunisi: [], haftalik: [],
       yorumlar: YORUM.slice(0, sira === 2 ? 1 : 4).map(([puan, baslik, metin, magaza, ulke], i) => ({
         magaza, puan, baslik, metin, ulke, yazan: "", tarih: new Date(simdi.getTime() - (i * 2 + 1) * 86400000).toISOString(),
       })),
@@ -71,6 +73,9 @@ function demoUygulamalar(simdi) {
       } : null,
       paraBirimi: "$", aktifGecmisGun: 30, kurulumSonGun: gunler[28],
     };
+    if (sira === 0) u.siteHunisi = [["Siteye gelen", 6480], ["Kayıt davetini gören", 412], ["Kayıt olan", 61], ["Plus sayfasını açan", 187], ["Plus alan", 9]].map(([etiket, deger]) => ({ etiket, deger }));
+    const haftaOnceGun = gunler[22];
+    u.haftalik = haftalikSatirlar(u, { [haftaOnceGun]: { abone: Math.round(u.kpi.abone * 0.96), mrr: Math.round(u.kpi.mrr * 0.95), kayitli: u.kpi.kayitli - u.kpi.yeniKayit7g } }, simdi);
     u.notlar = notlar(u);
     return u;
   });

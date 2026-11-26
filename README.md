@@ -63,6 +63,14 @@ Bir şey çalarken ada kapalıyken de çentiğin devamı gibi duran küçük bir
 - Yeni düşük puanlı yorum, yeni abone ya da okunamaz hâle gelen bir kaynak olduğunda Mac bildirimi gelir; tıklayınca ilgili uygulama açılır. İlk okumada bildirim gelmez, yalnızca sonradan değişenler haber olur. **Ayarlar > Genel** altından kapatılır.
 - Simgenin yanındaki sayı seçilebilir: aktif kullanıcı, site ziyaretçisi, yeni kayıt, MRR ya da hiçbiri.
 
+## Haftalık özet
+
+Her uygulamanın Özet sekmesindeki "Son 7 gün" bölümü ziyaretçi, yeni kayıt, aramadan tıklama, indirme, abone ve geliri önceki haftayla karşılaştırır. Abone, gelir ve kayıtlı kullanıcının geçmişi hiçbir kaynakta durmadığı için Appati her gün gördüğü değeri saklar; bu satırların değişimi bir hafta sonra görünmeye başlar. Yeni haftanın ilk okumasında aynı özet bildirim olarak gelir.
+
+## Site hunisi
+
+Umami kutusundaki "Site hunisi" alanına adımları `Etiket | olay` biçiminde yazarsın. İlk adım son 30 günde siteye gelen tekil ziyaretçidir; sonraki adımlar o olayın kaç kez gerçekleştiğidir (kişi sayısı değil). ucler. şablonunda hazır gelir.
+
 ## Dönüşüm hunisi
 
 Supabase kaynağındaki "Dönüşüm hunisi" alanına adımları sayaçlarla aynı biçimde yazarsın (`Etiket | tablo | filtre`). İlk adım her zaman kayıtlı kullanıcı sayısıdır. ucler. şablonunda hazır gelir: kayıt olan → hesabı eşitlenen → puan kazanan → bir aşama bitiren → Plus abonesi.

@@ -74,8 +74,22 @@ async function umami(ayar, gizli, { istek, simdi, onbellek }) {
   // Olaylar (son 30 gün): hangi olay kaç kez gönderildi; ayarda istenirse bir olayın bir özelliğine göre döküm
   // (ör. "anlamadim" olayının "kart" özelliği → en çok anlaşılmayan kartlar).
   const otuzGun = { startAt: otuz, endAt: son };
-  const olaylar = await guvenli(
-    al("metrics", { ...otuzGun, type: "event", limit: 15 }).then((r) => (Array.isArray(r) ? r : []).map((s) => ({ ad: s.x, v: Number(s.y) || 0 }))), "Olaylar");
+  const tumOlaylar = await guvenli(
+    al("metrics", { ...otuzGun, type: "event", limit: 100 }).then((r) => (Array.isArray(r) ? r : []).map((s) => ({ ad: s.x, v: Number(s.y) || 0 }))), "Olaylar");
+  const olaylar = tumOlaylar.slice(0, 15);
+
+  // Site hunisi (son 30 gün): ilk adım siteye gelen tekil ziyaretçi, sonrakiler ayarda yazılan olayların sayısı.
+  let siteHunisi = [];
+  const adimlar = (ayar.huniAdimlari || []).filter((x) => x.olay);
+  if (adimlar.length) {
+    try {
+      const otuzOzet = await al("stats", otuzGun);
+      const say = Object.fromEntries(tumOlaylar.map((o) => [o.ad, o.v]));
+      siteHunisi = [{ etiket: "Siteye gelen", deger: sayi(otuzOzet.visitors) }, ...adimlar.map((x) => ({ etiket: x.etiket || x.olay, deger: say[x.olay] || 0 }))];
+    } catch (e) {
+      uyarilar.push(`Site hunisi okunamadı (${e.message})`);
+    }
+  }
   const olayListeleri = [];
   for (const t of ayar.olayDokumleri || []) {
     if (!t.olay || !t.ozellik) continue;
@@ -109,6 +123,7 @@ async function umami(ayar, gizli, { istek, simdi, onbellek }) {
     ulkeler: ulke,
     olaylar,
     olayListeleri,
+    siteHunisi,
     uyarilar,
   };
 }

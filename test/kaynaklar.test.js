@@ -106,9 +106,10 @@ test("umami: paylaşım bağlantısı, bölge seçimi, seri ve kaynaklar", async
     [/type=event/, () => json([{ x: "anlamadim", y: 9 }, { x: "plus_gor", y: 4 }])],
     [/event-data\/values.*eventName=anlamadim.*propertyName=kart/, () => json([{ value: "fizik.vektorler.4", total: 2 }, { value: "kimya.mol.6", total: 7 }])],
   ]);
-  const r = await umami({ olayDokumleri: [{ etiket: "Anlaşılmayan", olay: "anlamadim", ozellik: "kart" }, { etiket: "Yok", olay: "yok", ozellik: "x" }] }, { paylasim: "https://cloud.umami.is/share/AbC123xyz/ucler.app" }, ctx);
+  const r = await umami({ huniAdimlari: [{ etiket: "Takılan", olay: "anlamadim" }, { etiket: "Hiç", olay: "olmayan" }], olayDokumleri: [{ etiket: "Anlaşılmayan", olay: "anlamadim", ozellik: "kart" }, { etiket: "Yok", olay: "yok", ozellik: "x" }] }, { paylasim: "https://cloud.umami.is/share/AbC123xyz/ucler.app" }, ctx);
   assert.deepEqual(r.olaylar, [{ ad: "anlamadim", v: 9 }, { ad: "plus_gor", v: 4 }]);
   assert.deepEqual(r.olayListeleri, [{ etiket: "Anlaşılmayan", ogeler: [{ ad: "kimya.mol.6", v: 7 }, { ad: "fizik.vektorler.4", v: 2 }] }]);
+  assert.deepEqual(r.siteHunisi, [{ etiket: "Siteye gelen", deger: 80 }, { etiket: "Takılan", deger: 9 }, { etiket: "Hiç", deger: 0 }]);
   assert.equal(r.uyarilar.length, 1); // "Yok" dökümü okunamadı, diğerleri etkilenmedi
   r.uyarilar.length = 0;
   assert.deepEqual([r.kpi.ziyaretciBugun, r.kpi.ziyaretci7g, r.kpi.sitedeSimdi], [12, 80, 3]);
@@ -256,7 +257,7 @@ test("birleştirme: bozuk kaynak diğerlerini düşürmez, boş kaynak atlanır"
     [/revenuecat/, () => new Response("no", { status: 403 })],
   ]);
   const u = await uygulamayiTopla(
-    { id: "a1", ad: "ucler.", kaynaklar: { supabase: { url: "https://x.supabase.co" }, revenuecat: { projectId: "p" }, appstore: { appId: "1" } } },
+    { id: "a1", ad: "Deneme", kaynaklar: { supabase: { url: "https://x.supabase.co" }, revenuecat: { projectId: "p" }, appstore: { appId: "1" } } },
     { supabase: { key: "k" }, revenuecat: { apiKey: "sk" } }, ctx);
   assert.deepEqual(u.kaynaklar.map((k) => [k.tur, k.tamam]), [["supabase", true], ["revenuecat", false]]);
   assert.equal(u.kpi.kayitli, 1);
@@ -264,7 +265,9 @@ test("birleştirme: bozuk kaynak diğerlerini düşürmez, boş kaynak atlanır"
   assert.equal(u.seri.aktif[29].v, 1);
   const o = ozetle([u]);
   assert.equal(o.kpi.kayitli, 1);
-  assert.equal(o.notlar[0].uygulama, "ucler.");
+  assert.equal(o.notlar[0].uygulama, "Deneme");
+  assert.ok(u.haftalik.some((s) => s.etiket === "Kayıtlı kullanıcı")); // haftalık özet birleştirmede üretilir
+  assert.deepEqual(Object.keys(ctx.onbellek.m["gunluk.a1"]), [gunAnahtari(simdi)]);
 });
 
 test("google analytics, Google Play'e girilen servis hesabını paylaşır", async () => {

@@ -16,6 +16,7 @@ const KAYNAKLAR = [
     tur: "umami", ad: "Umami", ne: "Site ziyaretçisi, nereden geldikleri, sayfalar, ülkeler (ücretsiz paylaşım bağlantısıyla)",
     alanlar: [
       { ad: "paylasim", etiket: "Paylaşım bağlantısı (Share URL)", gizli: true, ornek: "https://cloud.umami.is/share/AbC123xyz/ucler.app", ipucu: "Umami > Websites > siten > Edit > Share URL'yi aç, çıkan bağlantıyı yapıştır. Ücretli API anahtarı gerekmez. Bağlantıyı bilen herkes istatistikleri görebilir; kimseyle paylaşma." },
+      { ad: "huniAdimlari", etiket: "Site hunisi (isteğe bağlı, her satır bir adım: Etiket | olay)", cokSatir: true, istege: true, ornek: "Kayıt olan | kayit_tamam", ipucu: "İlk adım her zaman son 30 günde siteye gelen ziyaretçidir; sonraki adımlar o olayın kaç kez gönderildiğini sayar." },
       { ad: "olayDokumleri", etiket: "Olay dökümleri (isteğe bağlı, her satır: Etiket | olay | özellik)", cokSatir: true, istege: true, ornek: "En çok anlaşılmayan kartlar | anlamadim | kart", ipucu: "Siteden Umami'ye gönderilen bir olayın bir özelliğine göre son 30 günün dökümünü gösterir." },
     ],
   },
@@ -72,7 +73,10 @@ const SABLONLAR = [
         huni: "Hesabı eşitlenen | ilerleme |\nPuan kazanan | ilerleme | puan=gt.0\nBir aşama bitiren | ilerleme | veri->asama=neq.%7B%7D\nPlus abonesi | abonelik | ortam=eq.PRODUCTION&or=(bitis.is.null,bitis.gt.{simdi})",
         sayaclar: "Plus abonesi | abonelik | ortam=eq.PRODUCTION&or=(bitis.is.null,bitis.gt.{simdi})\nGünün sorusunu çözen (bugün) | gunun_sorusu | gun=eq.{bugun}\nLigde olan | ilerleme | ligde=is.true",
       },
-      umami: { olayDokumleri: "En çok anlaşılmayan kartlar | anlamadim | kart" },
+      umami: {
+        huniAdimlari: "Kayıt davetini gören | kayit_davet\nKayıt olan | kayit_tamam\nPlus sayfasını açan | plus_gor\nPlus alan | plus_al",
+        olayDokumleri: "En çok anlaşılmayan kartlar | anlamadim | kart",
+      },
       searchconsole: { siteUrl: "ucler.app" },
       ganalytics: {},
       revenuecat: {},
@@ -82,6 +86,19 @@ const SABLONLAR = [
   },
 ];
 
+// Şablondan eklenmiş bir uygulamada (adı şablonla aynı) boş bırakılan açık alanlar şablondaki değeri alır.
+// Böylece şablona sonradan eklenen huni, döküm gibi alanlar eski kayıtlarda da kendiliğinden çalışır.
+function sablonlaTamamla(uyg) {
+  const sablon = SABLONLAR.find((s) => s.ad === uyg.ad);
+  if (!sablon) return uyg;
+  const kaynaklar = { ...(uyg.kaynaklar || {}) };
+  for (const [tur, alanlar] of Object.entries(sablon.kaynaklar)) {
+    const eksik = Object.fromEntries(Object.entries(alanlar).filter(([a]) => !(kaynaklar[tur] || {})[a]));
+    if (Object.keys(eksik).length) kaynaklar[tur] = { ...eksik, ...(kaynaklar[tur] || {}) };
+  }
+  return { ...uyg, kaynaklar };
+}
+
 const gizliAlanlar = (tur) => KAYNAKLAR.find((k) => k.tur === tur).alanlar.filter((a) => a.gizli).map((a) => a.ad);
 
-module.exports = { KAYNAKLAR, SABLONLAR, gizliAlanlar };
+module.exports = { KAYNAKLAR, SABLONLAR, gizliAlanlar, sablonlaTamamla };

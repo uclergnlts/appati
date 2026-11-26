@@ -11,6 +11,7 @@ const { farkBul, agHatasi } = require("./bildirim");
 const { centikKur } = require("./centik");
 const { medya } = require("./medya");
 const { guncelleyici } = require("./guncelle");
+const { haftaAnahtari, bildirimMetni } = require("./haftalik");
 
 const GENISLIK = 440;
 const DEMO = process.env.APPATI_DEMO === "1";
@@ -197,6 +198,13 @@ async function yenile() {
       // Önceki okumayla farkı bildir (yeni düşük puanlı yorum, yeni abone, bozulan kaynak).
       const { bildirimler, iz } = farkBul(kayit.onbellek.al("bildirim.iz"), uygulamalar);
       kayit.onbellek.yaz("bildirim.iz", iz);
+      // Haftalık özet: yeni haftanın ilk okumasında bir kez bildirilir (ilk kurulumda değil).
+      const hafta = haftaAnahtari(simdi);
+      const sonHafta = kayit.onbellek.al("haftalik.sonHafta");
+      if (sonHafta !== hafta) {
+        kayit.onbellek.yaz("haftalik.sonHafta", hafta);
+        if (sonHafta) for (const u of uygulamalar) { const m = bildirimMetni(u); if (m) bildirimler.push({ uygulamaId: u.id, baslik: `${u.ad}: geçen hafta`, metin: m }); }
+      }
       kayit.onbellek.kaydet();
       if (kayit.ayar().genel.bildirim && Notification.isSupported()) {
         for (const b of bildirimler.slice(0, 5)) {
