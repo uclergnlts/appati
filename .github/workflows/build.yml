@@ -97,7 +97,9 @@ jobs:
           SURUM=$(node -p "require('./package.json').version")
           if gh release view "v$SURUM" >/dev/null 2>&1; then echo "::error::v$SURUM zaten yayınlanmış; package.json'daki sürümü artır."; exit 1; fi
           node tools/surum-json.js "$SURUM" "$GITHUB_REPOSITORY" > dist/releases.json
-          gh release create "v$SURUM" "dist/Appati-$SURUM-universal.zip" "dist/Appati-$SURUM-universal.dmg" dist/releases.json \
+          # Sürümden bağımsız adlı kopya: indirme sayfası hep aynı adrese bağlanır (…/releases/latest/download/Appati.dmg).
+          cp "dist/Appati-$SURUM-universal.dmg" dist/Appati.dmg
+          gh release create "v$SURUM" "dist/Appati-$SURUM-universal.zip" "dist/Appati-$SURUM-universal.dmg" dist/Appati.dmg dist/releases.json \
             --target "$GITHUB_SHA" --title "Appati $SURUM" --notes-file docs/SURUM-NOTU.md
           echo "### v$SURUM yayınlandı" >> "$GITHUB_STEP_SUMMARY"
 

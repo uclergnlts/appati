@@ -14,7 +14,7 @@ Free, open source, signed and notarized. No account, no server: your keys stay o
 
 ## Install
 
-Download the latest `.dmg` from [Releases](https://github.com/uclergnlts/appati/releases/latest), open it and drag Appati to Applications. Requires macOS 12 or later (Apple Silicon and Intel).
+[Download Appati.dmg](https://github.com/uclergnlts/appati/releases/latest/download/Appati.dmg), open it and drag Appati to Applications. Requires macOS 12 or later (Apple Silicon and Intel).
 
 Appati updates itself: it checks for a new version shortly after launch and every six hours, downloads it in the background and offers "Restart and update".
 
